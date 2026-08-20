@@ -2,388 +2,468 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Safe Consulting (세이프 컨설팅) - 통합 안전법규 AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스파크(Spark) - 산업안전 AI 컨설턴트</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.3/purify.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js"></script>
+    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a' }
-                    }
+                        brand: {
+                            50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e',
+                            600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d',
+                        }
+                    },
+                    fontFamily: { sans: ['Inter', 'Pretendard', '-apple-system', 'sans-serif'], }
                 }
             }
         }
     </script>
+    
     <style>
-        /* 인쇄 전용 마법: 인쇄 시 불필요한 껍데기는 숨기고 내용만 A4에 맞춤 */
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .prose h1, .prose h2, .prose h3 { color: #1e293b; font-weight: 700; margin-top: 1em; margin-bottom: 0.5em; }
+        .prose h1 { font-size: 1.5em; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.3em; }
+        .prose p { margin-bottom: 1em; line-height: 1.6; }
+        .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+        .prose ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+        .prose li { margin-bottom: 0.25em; }
+        .prose strong { color: #0f172a; font-weight: 700; }
+        
+        /* 비교표 강제 스타일링 */
+        .prose table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; font-size: 0.9em; }
+        .prose th, .prose td { border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left; }
+        .prose th { background-color: #f1f5f9; font-weight: 600; color: #334155; }
+        
+        .prose blockquote { border-left: 4px solid #94a3b8; padding-left: 1em; color: #475569; font-style: italic; background: #f8fafc; padding: 0.5rem 1rem; border-radius: 0 0.5rem 0.5rem 0; }
+        .prose code { background-color: #f1f5f9; color: #ef4444; padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.9em; font-family: monospace; }
+        .prose pre { background-color: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1em; font-family: monospace; }
+        
+        .typing-indicator span {
+            display: inline-block; width: 8px; height: 8px; background-color: #94a3b8;
+            border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
         @media print {
-            header, footer, .no-print { display: none !important; }
-            main { display: block !important; padding: 0; overflow: visible !important; }
-            body { background-color: white; }
+            body { background-color: white !important; height: auto !important; overflow: visible !important; display: block !important; }
+            header, footer, #infoModal { display: none !important; }
+            main { height: auto !important; overflow: visible !important; max-width: 100% !important; padding: 0 !important; }
+            .bg-slate-800 { background-color: #f1f5f9 !important; color: #1e293b !important; border: 1px solid #cbd5e1; }
+            .text-white { color: #000 !important; }
+            .shadow-md, .shadow-sm { box-shadow: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .mermaid { page-break-inside: avoid; max-width: 100% !important; margin: 10px 0 !important; }
+            .prose table { page-break-inside: avoid; border-collapse: collapse !important; margin-bottom: 20px !important; }
+            .prose tr { page-break-inside: avoid; }
+            .prose th, .prose td { border: 1px solid #94a3b8 !important; padding: 10px !important; }
+            .initial-msg { display: none !important; } 
+        }
+
+        @supports (-webkit-touch-callout: none) {
+            .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
         }
         
-        /* 다이어그램 및 표 기본 스타일 */
-        .mermaid { background: white; padding: 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; margin: 1rem 0; overflow-x: auto; }
-        .prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-        .prose th, .prose td { border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left; }
-        .prose th { background-color: #f1f5f9; font-weight: bold; }
-        
-        /* 마크다운 텍스트 크기 확대 스타일 적용 */
-        .prose p, .prose li { font-size: 1.1rem; line-height: 1.7; }
-        .prose h1 { font-size: 1.65rem; font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.75rem; }
-        .prose h2 { font-size: 1.43rem; font-weight: bold; margin-top: 1.25rem; margin-bottom: 0.5rem; }
-        .prose h3 { font-size: 1.21rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
+        footer {
+            background-color: #ffffff;
+            position: relative;
+            z-index: 50; 
+        }
     </style>
 </head>
-<body class="bg-slate-50 flex flex-col h-screen text-slate-800 font-sans">
-    
-    <header class="bg-primary-900 text-white p-4 shadow-md flex justify-between items-center shrink-0">
-        <div class="flex items-center gap-3">
-            <i class="fa-solid fa-shield-halved text-2xl"></i>
-            <div>
-                <h1 class="text-xl font-bold tracking-tight">Safe Consulting (세이프 컨설팅)</h1>
-                <p class="text-xs text-primary-100 opacity-90">통합 안전법규 AI 컨설턴트</p>
+
+<body class="bg-slate-50 text-slate-800 flex flex-col h-[100dvh] overflow-hidden">
+    <header class="bg-brand-800 text-white shadow-md z-10 shrink-0">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-brand-500 border-2 border-brand-100 flex items-center justify-center text-xl shadow-inner">
+                    <i class="fa-solid fa-hard-hat text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight">스파크(Spark)</h1>
+                    <p class="text-xs text-brand-100 opacity-90">산업안전 AI 전문가</p>
+                </div>
             </div>
-        </div>
-        <div class="flex gap-2">
-            <!-- 다운로드 버튼 (API 설정 버튼은 완전히 삭제됨) -->
-            <button id="saveBtn" class="p-2 hover:bg-primary-700 rounded transition-colors" title="대화 저장 (HTML)">
-                <i class="fa-solid fa-download"></i>
-            </button>
+            <div class="flex items-center gap-2">
+                <button id="saveBtn" class="w-8 h-8 rounded-full hover:bg-brand-700 transition flex items-center justify-center" title="대화 내용 저장">
+                    <i class="fa-solid fa-download text-brand-100"></i>
+                </button>
+                <button id="printBtn" class="w-8 h-8 rounded-full hover:bg-brand-700 transition flex items-center justify-center" title="해설 인쇄하기">
+                    <i class="fa-solid fa-print text-brand-100"></i>
+                </button>
+                <div class="w-px h-5 bg-brand-600 mx-1"></div> 
+                <button id="infoBtn" class="w-8 h-8 rounded-full hover:bg-brand-700 transition flex items-center justify-center" title="이용 안내">
+                    <i class="fa-solid fa-circle-info text-brand-100"></i>
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- 인쇄 유도 안내바 -->
-    <div class="bg-primary-50 border-b border-primary-100 p-2 text-center text-sm shrink-0 no-print">
-        <span class="text-primary-700 font-semibold inline-block px-3 py-1">
-            <i class="fa-solid fa-print mr-1"></i>인쇄 안내: 상단 [다운로드] 후 저장된 파일을 열어 '마우스 우클릭 -> 인쇄'를 이용해 주세요.
-        </span>
+    <div class="bg-brand-50 border-b border-brand-200 text-brand-800 text-xs md:text-sm text-center py-2 px-4 shadow-sm z-20">
+        <i class="fa-solid fa-bullhorn mr-1"></i> 현재 <strong>무료 컨설팅</strong> 기간입니다. (일일 최대 6회 질문 가능)
     </div>
 
-    <main class="flex-1 overflow-y-auto p-4 md:p-6 pb-32" id="chatContainer">
-        <div class="max-w-4xl mx-auto flex flex-col gap-6" id="chatLog">
-            <div class="flex gap-4">
-                <div class="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                    <i class="fa-solid fa-shield"></i>
-                </div>
-                <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-200 max-w-[85%]">
-                    <h3 class="font-bold text-lg mb-2 text-primary-900">Safe Consulting (세이프 컨설팅)</h3>
-                    <p class="mb-4">안녕하십니까. 현장 안전관리자, 소장, 감독관, 기술사 및 수험생 여러분을 위한 <strong>통합 안전법규 AI 컨설턴트 'Safe Consulting (세이프 컨설팅)'</strong>입니다.</p>
-                    <ul class="list-disc pl-5 space-y-1 mb-4 text-slate-700">
-                        <li>⚡ <strong>명확한 요약과 법령 근거</strong> (조/항/호 명시)</li>
-                        <li>🖼️ <strong>시각화 다이어그램 및 비교표</strong> 제공</li>
-                        <li>💰 <strong>정부 지원 프로그램 연계 안내</strong></li>
-                        <li>🎨 <strong>안전 교육용 이미지 프롬프트</strong> 지원</li>
+    <main class="flex-1 overflow-y-auto w-full max-w-5xl mx-auto p-4 md:p-6 flex flex-col gap-6" id="chatContainer">
+        <div class="flex gap-4 w-full animate-fade-in initial-msg">
+            <div class="w-10 h-10 rounded-full bg-brand-600 flex-shrink-0 flex items-center justify-center shadow-md text-white mt-1">
+                <i class="fa-solid fa-hard-hat"></i>
+            </div>
+            <div class="flex flex-col gap-1 max-w-[90%] md:max-w-[80%]">
+                <span class="text-sm font-semibold text-slate-700">스파크 (Spark)</span>
+                <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm prose text-sm md:text-base">
+                    <p>안녕하십니까. 산업안전 베테랑 전문가 <strong>스파크</strong>입니다.</p>
+                    <p>궁금한 점을 편하게 질문해 주십시오. 최신 개정 법령을 근거로 <strong>명쾌한 해설, 비교표, 다이어그램</strong>을 제공해 드립니다.</p>
+                    <ul class="list-disc pl-4 mt-2">
+                        <li>법규 해설 및 정부 지원 사업 안내</li>
+                        <li><strong>제미나이 캔버스</strong>용 현장 안전 교육 이미지 프롬프트 제공</li>
                     </ul>
-                    <div class="bg-blue-50 border-l-4 border-blue-500 p-3 mt-4 text-sm text-blue-800">
-                        <strong>◎ 뻔한 교과서적 답변이 아닙니다.</strong><br>
-                        복잡하게 꼬인 상황이거나 이례적인 현장 조건이라면 구체적인 정황을 말씀해 주십시오. <strong>비용을 줄일 수 있는 정부 지원 사업</strong> 안내는 물론, 당신의 특수한 상황에 딱 맞는 <strong>상세하고 속 시원한 맞춤형 타개책</strong>을 강구해 드립니다.
-                    </div>
+                    <p class="mt-3 text-xs text-slate-500">※ 마이크 아이콘을 누르고 길게 말씀하셔도 중간에 끊기지 않고 계속 받아 적습니다.</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <footer class="bg-white border-t border-slate-200 p-4 fixed bottom-0 w-full no-print">
-        <div class="max-w-4xl mx-auto flex gap-2">
-            <button id="micBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-3 rounded-xl transition-colors border border-slate-300">
-                <i class="fa-solid fa-microphone"></i>
-            </button>
-            <textarea id="userInput" rows="1" class="flex-1 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none overflow-hidden" placeholder="법조문을 복사해 붙여넣고 마이크를 눌러 질문하시거나, 직접 입력하세요..."></textarea>
-            <button id="sendBtn" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-bold shadow-md transition-colors">
-                전송 <i class="fa-solid fa-paper-plane ml-1"></i>
-            </button>
+    <footer class="border-t border-slate-200 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe bg-white">
+        <div class="max-w-5xl mx-auto p-3 md:p-4 pb-6 md:pb-4">
+            <form id="chatForm" class="relative flex items-end gap-2 bg-slate-50 border border-slate-300 rounded-2xl focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200 transition-all p-1">
+                <button type="button" id="micBtn" class="p-3 text-slate-500 hover:text-brand-600 transition-colors self-end mb-1">
+                    <i class="fa-solid fa-microphone text-xl"></i>
+                </button>
+                <textarea 
+                    id="userInput" 
+                    rows="2" 
+                    class="w-full bg-transparent border-none focus:ring-0 resize-none max-h-[300px] min-h-[60px] py-3 px-1 text-sm md:text-base text-slate-800 placeholder-slate-400 rounded-2xl outline-none" 
+                    placeholder="질문을 입력하거나 마이크를 눌러 말씀하세요..."
+                    required></textarea>
+                <div class="p-2 shrink-0 self-end">
+                    <button type="submit" id="sendBtn" class="w-12 h-12 bg-brand-600 hover:bg-brand-700 text-white rounded-full flex items-center justify-center transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-paper-plane mr-0.5 text-lg"></i>
+                    </button>
+                </div>
+            </form>
+            <div class="text-center mt-3 mb-1">
+                <span class="text-[10px] md:text-xs text-slate-400">※ 본 해설은 참고용이며, 최종 유권해석은 고용노동부에 문의하시기 바랍니다.</span>
+            </div>
         </div>
     </footer>
 
+    <div id="infoModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden transform transition-all scale-95 opacity-0" id="modalContent">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-book-open text-brand-600 mr-2"></i> 스파크 이용 안내</h3>
+                <button id="closeModal" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-6 text-sm text-slate-600 space-y-4">
+                <p>1. <strong>마이크 무한 릴레이:</strong> 마이크를 켜고 길게 말씀하셔도 됩니다. 잠시 숨을 고를 때 브라우저가 꺼지려고 해도 자동으로 다시 켜서 이어 붙입니다.</p>
+                <p>2. <strong>이미지 프롬프트:</strong> 답변 후 '이미지 프롬프트 만들어줘'라고 하시면 제미나이 캔버스용 지시문을 영어/한국어로 짜드립니다.</p>
+                <p>3. <strong>일일 제한:</strong> 트래픽 방지를 위해 하루 6회 질문으로 제한됩니다.</p>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50 text-right">
+                <button id="closeModalBtn" class="px-5 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition font-medium text-sm">확인</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 초기화 및 다이어그램 설정
-        mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose' });
+        mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'Pretendard, sans-serif' });
 
-        const chatLog = document.getElementById('chatLog');
-        const userInput = document.getElementById('userInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const micBtn = document.getElementById('micBtn');
-        const saveBtn = document.getElementById('saveBtn');
-        
-        const systemPrompt = `당신은 대한민국 최고의 현장 맞춤형 산업안전 및 관련 법규 전문 AI 컨설턴트 'Safe Consulting (세이프 컨설팅)'임.
-주요 대상: 현장 안전관리자, 작업 소장, 발주청 감독관, 산업안전지도사/안전기술사 수험생 등.
-범위: 산업안전보건법, 중대재해처벌법, 건설기술진흥법, 건설산업기본법, 전기공사업법, 정보통신공사업법 등 현장 관련 법규 교차 분석.
-
-[규칙]
-- 자료를 만들 때 '~합니다. ~입니다'라는 표현을 쓰지 말 것 (개조식 또는 '~함', '~임' 사용).
-- 소제목들에 시리얼 번호(예: 1-1, 1-2, 1-3 등)를 매길 것.
-- [분량 규칙]: 내용이 뭉텅이로 잘리거나 누락되지 않도록, 최대한 깊이 있고 상세하게 **A4 2장 이상의 충분한 분량**으로 작성할 것.
-- [표(Table) 작성 규칙]: 복잡한 법적 기준, 수치, 설치 조건, 위반 시 벌칙 등 서로 비교가 필요한 항목은 반드시 **마크다운 표(Table)**를 적극 활용하여 한눈에 보기 쉽게 정리할 것.
-
-# 2-Tier Response Strategy (답변 2원화 전략)
-[기본 답변 모드] - 기본 질문 시
-1. ⚡ [핵심 요약] : 질문에 대한 명확한 한 줄 결론.
-2. 📜 [관련 법규 기본 해설] : 상세한 법규 해설 (★비교가 필요한 항목은 반드시 마크다운 표로 작성할 것).
-3. 🖼️ [시각화 자료] (Mermaid 문법 코드블록 제공. ★필수: Syntax error 방지를 위해 다이어그램 노드(상자) 안에는 괄호(), 따옴표, 특수기호를 절대 쓰지 말고 '단어' 위주로 깔끔하게 작성할 것)
-4. 💰 [정부 지원 프로그램 안내] : 질의 상황에 적용 가능한 정부 지원 프로그램 안내. 해당 없으면 생략 가능.
-5. 💎 [프리미엄 심화 컨설팅 및 이미지 프롬프트 안내] : 답변 마지막에 반드시 아래 2가지 문구를 삽입.
-   "💡 더 깊이 있는 분석이 필요하신가요? 구체적인 상황을 알려주시고 '심화 대책 부탁해'라고 말씀해 주시면, 맞춤형 타개책이 포함된 [프리미엄 심화 컨설팅]을 제공해 드립니다."
-   "🎨 **[현장 안전 교육용 이미지 프롬프트]**가 필요하신가요? '이미지 프롬프트 만들어줘'라고 하시면, 미드저니/달리 등에서 바로 쓸 수 있는 프롬프트를 영어/한국어로 제공해 드립니다."
-
-[심화 답변 및 추가 요청 모드]
-- 사용자가 '심화', '추가 대책' 등을 요청 시:
-  분량: A4 3~5장 이상 분량으로 매우 상세하고 속 시원한 맞춤형 타개책 제공.
-  1. 🔍 [질의회시 및 판례 심층 분석]
-  2. 💡 [현장 맞춤형 심화 대책 및 솔루션]
-  3. 💰 [정부 지원 프로그램 심층 안내]
-  4. 📑 [실무 적용 체크리스트]
-- 사용자가 '이미지 프롬프트', '프롬프트 만들어줘' 등을 요청 시:
-  해당 위험 상황이나 안전 대책을 잘 보여줄 수 있는 초현실적이고 직관적인 안전 교육용 이미지 생성 프롬프트를 영문 1개, 국문 1개 작성하여 마크다운 코드블럭으로 제공할 것.`;
-
-        let apiChatHistory = [
-            { role: "user", parts: [{ text: systemPrompt }] },
-            { role: "model", parts: [{ text: "네, 지침을 완벽히 숙지했음. 표(Table) 활용과 충분한 분량, 다이어그램 에러 방지 규칙을 준수하여 현장에 최적화된 Safe Consulting을 제공하겠음." }] }
-        ];
-
-        // 텍스트 영역 자동 크기 조절
-        userInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-            if(this.value === '') this.style.height = 'auto';
-        });
-
-        // 다운로드 기능
-        saveBtn.addEventListener('click', () => {
-            const htmlHeader = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>Safe Consulting (세이프 컨설팅) 기록</title><script src="https://cdn.tailwindcss.com"><\/script><script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"><\/script><style>body{background-color:#f8fafc; padding:2rem;} .chat-container {max-width: 800px; margin: 0 auto; background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);} .prose p, .prose li { font-size: 1.1rem; line-height: 1.7; } .mermaid { background: white; padding: 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; margin: 1rem 0; overflow-x: auto; } table { width: 100%; border-collapse: collapse; margin: 1rem 0; } th, td { border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left; } th { background-color: #f1f5f9; font-weight: bold; }</style></head><body><div class="chat-container">`;
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatContainer = document.getElementById('chatContainer');
+            const chatForm = document.getElementById('chatForm');
+            const userInput = document.getElementById('userInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const micBtn = document.getElementById('micBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const printBtn = document.getElementById('printBtn');
             
-            const chatContent = document.getElementById('chatLog').innerHTML;
-            
-            const htmlFooter = `</div><script>mermaid.initialize({startOnLoad: true, theme: 'neutral', securityLevel: 'loose'});<\/script></body></html>`;
-            
-            const fullHtml = htmlHeader + chatContent + htmlFooter;
-            const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            
-            const date = new Date().toISOString().split('T')[0];
-            a.href = url;
-            a.download = `Safe_Consulting_안전컨설팅_기록_${date}.html`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        });
+            // 모달 관련
+            const infoBtn = document.getElementById('infoBtn');
+            const infoModal = document.getElementById('infoModal');
+            const closeModal = document.getElementById('closeModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const modalContent = document.getElementById('modalContent');
 
-        // 메시지 렌더링
-        function appendMessage(sender, text) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'flex gap-4';
-            
-            if(sender === 'user') {
-                msgDiv.innerHTML = `
-                    <div class="w-10 h-10 rounded-full bg-slate-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                        <i class="fa-solid fa-user"></i>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-200 max-w-[85%]">
-                        <p class="whitespace-pre-wrap">${text}</p>
-                    </div>
-                `;
-            } else {
-                let parsedHtml = DOMPurify.sanitize(marked.parse(text));
-                
-                msgDiv.innerHTML = `
-                    <div class="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                        <i class="fa-solid fa-shield"></i>
-                    </div>
-                    <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-200 max-w-[85%] prose prose-slate w-full overflow-x-auto">
-                        ${parsedHtml}
-                    </div>
-                `;
-            }
-            
-            chatLog.appendChild(msgDiv);
-            window.scrollTo(0, document.body.scrollHeight);
+            let fullConversationHistory = [];
 
-            if(sender === 'model') {
-                const codeBlocks = msgDiv.querySelectorAll('pre code.language-mermaid');
-                codeBlocks.forEach((block, index) => {
-                    const pre = block.parentElement;
-                    const div = document.createElement('div');
-                    div.className = 'mermaid';
-                    let code = block.textContent;
-                    code = code.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-                    div.textContent = code;
-                    pre.parentNode.replaceChild(div, pre);
-                });
-                try { mermaid.run(); } catch (e) { console.error("Mermaid error:", e); }
-            }
-        }
-
-        // 로딩 표시
-        function showLoading() {
-            const id = 'loading-' + Date.now();
-            const msgDiv = document.createElement('div');
-            msgDiv.id = id;
-            msgDiv.className = 'flex gap-4';
-            msgDiv.innerHTML = `
-                <div class="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                    <i class="fa-solid fa-shield"></i>
-                </div>
-                <div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-200 flex items-center gap-2 text-slate-500">
-                    <i class="fa-solid fa-circle-notch fa-spin"></i> Safe Consulting (세이프 컨설팅)이 분석 중입니다...
-                </div>
-            `;
-            chatLog.appendChild(msgDiv);
-            window.scrollTo(0, document.body.scrollHeight);
-            return id;
-        }
-        function removeLoading(id) {
-            const el = document.getElementById(id);
-            if(el) el.remove();
-        }
-
-        async function sendMessage() {
-            const text = userInput.value.trim();
-            if(!text) return;
-
-            // 🚀 일일 질문 횟수 제한 로직 (하루 6번)
-            const today = new Date().toISOString().split('T')[0];
-            let usageData = JSON.parse(localStorage.getItem('safeConsultingUsage')) || { date: today, count: 0 };
-            
-            if (usageData.date !== today) {
-                usageData = { date: today, count: 0 };
-            }
-            
-            if (usageData.count >= 6) {
-                appendMessage('model', `**⚠️ 일일 질문 횟수 초과 안내**\n\n하루 최대 질문 횟수(6회)를 모두 사용하셨습니다. 서버 비용 방지를 위해 내일 다시 이용해 주시거나, 추가 플랜을 문의해 주세요.`);
-                userInput.value = '';
-                userInput.style.height = 'auto';
-                return;
-            }
-            
-            usageData.count++;
-            localStorage.setItem('safeConsultingUsage', JSON.stringify(usageData));
-            // --------------------------------------------------------
-
-            appendMessage('user', text);
-            userInput.value = '';
-            userInput.style.height = 'auto';
-            
-            apiChatHistory.push({ role: "user", parts: [{ text: text }] });
-            const loadingId = showLoading();
-
-            try {
-                // 구글 직접 통신이 아닌, Vercel 서버 뒷방으로 통신 우회 (API 키 팝업 필요 없음)
-                const response = await fetch(`/api/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: apiChatHistory })
-                });
-
-                if (!response.ok) throw new Error(`서버 통신 에러: ${response.status}`);
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                const replyText = data.candidates[0].content.parts[0].text;
-                
-                removeLoading(loadingId);
-                appendMessage('model', replyText);
-                apiChatHistory.push({ role: "model", parts: [{ text: replyText }] });
-
-            } catch (error) {
-                console.error(error);
-                removeLoading(loadingId);
-                appendMessage('model', `**오류 발생:** 통신 중 문제가 발생했습니다. Vercel 서버 환경 변수가 올바르게 설정되었는지 확인해 주세요.\n\n상세: ${error.message}`);
-                apiChatHistory.pop(); // 실패 시 마지막 질문 제거
-            }
-        }
-
-        // 이벤트 리스너
-        sendBtn.addEventListener('click', sendMessage);
-        userInput.addEventListener('keypress', (e) => {
-            if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-        });
-
-        if ('webkitSpeechRecognition' in window) {
-            const recognition = new webkitSpeechRecognition();
-            recognition.lang = 'ko-KR';
-            recognition.interimResults = false; 
-            recognition.continuous = true; 
-            recognition.maxAlternatives = 1;
-
-            let isRecording = false;
-            let originalText = ""; 
-            let isManualStop = false; 
-            let isRelay = false; 
-
-            micBtn.addEventListener('click', () => {
-                if(isRecording) { 
-                    isManualStop = true; 
-                    recognition.stop(); 
-                    return; 
-                }
-                isManualStop = false;
-                isRelay = false;
-                originalText = userInput.value;
-                recognition.start();
+            userInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight < 300 ? this.scrollHeight : 300) + 'px';
+                if(this.value.trim() === '') this.style.height = 'auto';
             });
 
-            recognition.onstart = function() {
-                isRecording = true;
-                micBtn.classList.add('bg-red-100', 'text-red-600', 'border-red-300');
-                micBtn.classList.remove('bg-slate-100', 'text-slate-600', 'border-slate-300');
-                micBtn.innerHTML = '<i class="fa-solid fa-microphone-lines fa-fade"></i>';
-                userInput.placeholder = "말씀해 주세요. (질문이 끝난 후 다시 마이크 버튼을 눌러주세요)";
-            };
+            userInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if(this.value.trim() !== '') chatForm.dispatchEvent(new Event('submit'));
+                }
+            });
 
-            recognition.onresult = function(event) {
-                let currentSpeech = '';
-                for (let i = 0; i < event.results.length; i++) {
-                    currentSpeech += event.results[i][0].transcript;
+            // 모달 열고 닫기
+            const openModal = () => {
+                infoModal.classList.remove('hidden');
+                setTimeout(() => {
+                    modalContent.classList.remove('scale-95', 'opacity-0');
+                    modalContent.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            };
+            const closeInfoModal = () => {
+                modalContent.classList.remove('scale-100', 'opacity-100');
+                modalContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => infoModal.classList.add('hidden'), 200);
+            };
+            infoBtn.addEventListener('click', openModal);
+            closeModal.addEventListener('click', closeInfoModal);
+            closeModalBtn.addEventListener('click', closeInfoModal);
+            infoModal.addEventListener('click', (e) => { if(e.target === infoModal) closeInfoModal(); });
+
+            // 인쇄 기능
+            printBtn.addEventListener('click', () => { window.print(); });
+
+            // 마크다운 저장 기능
+            saveBtn.addEventListener('click', () => {
+                if(fullConversationHistory.length === 0) return alert('아직 저장할 대화가 없습니다.');
+                let textToSave = "# 스파크(Spark) 산업안전 컨설팅 기록\n\n";
+                fullConversationHistory.forEach(msg => {
+                    const roleName = msg.role === 'user' ? '👤 질문자' : '⚡ 스파크';
+                    textToSave += `### ${roleName}\n${msg.content}\n\n---\n\n`;
+                });
+                const blob = new Blob([textToSave], { type: 'text/markdown;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `스파크_안전컨설팅_기록_${new Date().toISOString().slice(0, 10)}.md`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+
+            const systemPrompt = `당신은 대한민국 최고의 현장 맞춤형 산업안전 및 관련 법규 전문 AI 컨설턴트 '스파크(Spark)'임.
+범위: 산업안전보건법, 중대재해처벌법 등 현장 관련 법규 교차 분석.
+
+[핵심 규칙]
+- 자료를 만들 때 '~합니다. ~입니다'라는 표현을 쓰지 말 것 (개조식 또는 '~함', '~임' 사용).
+- [표(Table) 작성 규칙]: 복잡한 법적 기준, 수치, 위반 시 벌칙 등 비교가 필요한 항목은 반드시 **마크다운 표(Table)**를 적극 활용하여 한눈에 보기 쉽게 정리할 것.
+
+# 3-Tier Response Strategy (답변 3원화 전략)
+
+[1. 기본 답변 모드] - 사용자의 첫 기본 질문 시 (★분량 조절 필수)
+- 분량 규칙: A4 2~3장 내외로 한정하여 핵심만 명료하게 작성할 것. 절대 불필요하게 10장씩 길게 쓰지 말 것!
+1. ⚡ [핵심 요약] : 질문에 대한 명확한 한 줄 결론.
+2. 📜 [관련 법규 기본 해설] : 간결한 법규 해설 (★표 필수).
+3. 🖼️ [시각화 자료] (Mermaid 문법 제공. ★필수: Syntax error 방지를 위해 다이어그램 상자(노드) 안에는 괄호(), 따옴표, 특수기호를 절대 쓰지 말고 '단어' 위주로 깔끔하게 작성할 것)
+4. 💰 [정부 지원 프로그램 안내]
+5. 💎 [추가 컨설팅 및 이미지 프롬프트 안내] : 답변 마지막에 반드시 아래 문구를 삽입.
+   "💡 더 깊이 있는 분석(심화)이나 현장 교육용 **[이미지 생성 프롬프트]**가 필요하신가요? '심화 대책 알려줘' 또는 '이미지 프롬프트 만들어줘'라고 추가 질문해 주시면 맞춤형 자료를 제공해 드립니다."
+
+[2. 심화 답변 모드] - 사용자가 '심화', '추가 대책' 등을 명시적으로 요청 시
+- 분량 규칙: A4 5장 이상의 충분한 분량으로 논문처럼 매우 상세하게 관련 판례 및 현장 타개책 브리핑.
+
+[3. 이미지 프롬프트 요청 모드] - 사용자가 '이미지', '프롬프트' 등을 명시적으로 요청 시
+- 분량 규칙: 별도로 A4 1~2장 분량을 할애하여 상세히 제공할 것.
+- 내용: 해당 위험 상황이나 대책을 묘사하는 안전 교육용 이미지 프롬프트를 영문 1개, 국문 1개 작성.
+- ★필수 안내: 프롬프트를 제공할 때 반드시 **"해당 프롬프트는 '제미나이 캔버스(Gemini Canvas)'에서 사용하시는 것을 1순위로 강력 추천합니다."** 라고 텍스트로 명확하게 안내할 것.`;
+
+            let apiChatHistory = [
+                { role: "user", parts: [{ text: systemPrompt }] },
+                { role: "model", parts: [{ text: "네, 완벽히 숙지했음. 3단계 분량 밸런스 유지, 표(Table) 활용, 다이어그램 기호 제거를 준수하며, 이미지 프롬프트 요청 시에만 1-2장 분량으로 '제미나이 캔버스'를 1순위로 고정 추천하겠음." }] }
+            ];
+
+            function appendMessage(sender, text, isMarkdown = false, isSystemMsg = false) {
+                const isUser = sender === 'user';
+                const wrapper = document.createElement('div');
+                wrapper.className = `flex gap-3 md:gap-4 w-full ${isUser ? 'flex-row-reverse' : ''} animate-fade-in`;
+                
+                if (!isSystemMsg) fullConversationHistory.push({ role: sender, content: text });
+                
+                let avatar = isUser 
+                    ? `<div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-300 flex-shrink-0 flex items-center justify-center shadow-inner text-white mt-1"><i class="fa-solid fa-user"></i></div>`
+                    : `<div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-brand-600 flex-shrink-0 flex items-center justify-center shadow-md text-white mt-1"><i class="fa-solid fa-hard-hat"></i></div>`;
+
+                marked.setOptions({ gfm: true, breaks: true });
+                let contentHtml = isMarkdown ? DOMPurify.sanitize(marked.parse(text)) : text.replace(/\n/g, '<br>');
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex flex-col gap-1 max-w-[90%] md:max-w-[85%] ${isUser ? 'items-end' : 'items-start'} overflow-hidden`;
+                
+                const bubble = document.createElement('div');
+                bubble.className = `p-3 md:p-4 shadow-sm text-sm md:text-base break-words w-full 
+                    ${isUser ? 'bg-slate-800 text-white rounded-2xl rounded-tr-none' 
+                             : (isSystemMsg ? 'bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl' : 'bg-white border border-slate-200 rounded-2xl rounded-tl-none prose prose-sm md:prose-base overflow-x-auto')}`;
+                
+                bubble.innerHTML = contentHtml;
+                messageDiv.appendChild(bubble);
+                wrapper.insertAdjacentHTML('beforeend', avatar);
+                wrapper.appendChild(messageDiv);
+                chatContainer.appendChild(wrapper);
+
+                if (isMarkdown && !isUser) {
+                    const mermaidBlocks = wrapper.querySelectorAll('.language-mermaid');
+                    mermaidBlocks.forEach((block) => {
+                        const pre = block.parentElement;
+                        const div = document.createElement('div');
+                        div.className = 'mermaid flex justify-center my-4 p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-x-auto w-full';
+                        div.textContent = block.textContent;
+                        pre.replaceWith(div);
+                    });
+                    try { mermaid.init(undefined, wrapper.querySelectorAll('.mermaid')); } catch (e) {}
+                }
+                chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+            }
+
+            function showTypingIndicator() {
+                const id = 'typing-' + Date.now();
+                const wrapper = document.createElement('div');
+                wrapper.id = id;
+                wrapper.className = `flex gap-4 w-full animate-fade-in`;
+                wrapper.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-brand-600 flex-shrink-0 flex items-center justify-center text-white mt-1"><i class="fa-solid fa-hard-hat"></i></div>
+                    <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center h-12"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+                chatContainer.appendChild(wrapper);
+                chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+                return id;
+            }
+
+            async function generateGeminiResponse(userText) {
+                apiChatHistory.push({ role: "user", parts: [{ text: userText }] });
+                
+                try {
+                    // 구글 직접 통신을 완전히 없애고 Vercel 서버(뒷방)로만 통신
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: apiChatHistory })
+                    });
+                    
+                    const result = await response.json();
+                    if (!response.ok || result.error) throw new Error(result.error || `서버 에러 (${response.status})`);
+                    
+                    const aiText = result.candidates[0].content.parts[0].text;
+                    apiChatHistory.push({ role: "model", parts: [{ text: aiText }] });
+                    if (apiChatHistory.length > 15) apiChatHistory = apiChatHistory.slice(apiChatHistory.length - 15);
+                    return aiText;
+                } catch (error) {
+                    return `<div class='text-red-600 bg-red-50 p-4 rounded-lg border border-red-200'>🚨 <strong>통신 오류</strong><br>서버 연결에 실패했습니다.<br>상세: ${error.message}</div>`;
+                }
+            }
+
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = userInput.value.trim();
+                if(!text) return;
+
+                // 🔓 [치트키] 관리자 모드 강제 해제 명령어
+                if (text === '관리자모드해제') {
+                    localStorage.setItem('sparkAdminBypass', 'true');
+                    appendMessage('model', '🔓 **[관리자 모드 활성화]**\n\n사장님, 환영합니다! 이제 일일 질문 횟수 제한(6회)이 영구적으로 해제되었습니다. 무제한으로 테스트하십시오.', true, true);
+                    userInput.value = ""; 
+                    userInput.style.height = 'auto';
+                    return;
+                }
+
+                // 🛡️ [보안] 일일 6회 질문 횟수 제한 로직
+                const isAdmin = localStorage.getItem('sparkAdminBypass') === 'true';
+                const today = new Date().toISOString().split('T')[0];
+                let usageData = JSON.parse(localStorage.getItem('sparkUsage')) || { date: today, count: 0 };
+                
+                if (usageData.date !== today) usageData = { date: today, count: 0 }; // 날짜 바뀌면 리셋
+                
+                if (!isAdmin && usageData.count >= 6) {
+                    appendMessage('model', `**⚠️ 일일 컨설팅 횟수 초과 안내**\n\n무료 제공되는 하루 최대 질문 횟수(6회)를 모두 사용하셨습니다. 서버 안정화를 위해 내일 다시 이용해 주시기 바랍니다.`, true, true);
+                    userInput.value = ""; 
+                    return;
                 }
                 
-                if (originalText.trim() !== '') {
-                    if (isRelay) {
-                        userInput.value = originalText + ' ' + currentSpeech;
+                if (!isAdmin) {
+                    usageData.count++;
+                    localStorage.setItem('sparkUsage', JSON.stringify(usageData));
+                }
+
+                appendMessage('user', text);
+                userInput.value = ""; 
+                userInput.style.height = 'auto'; 
+                sendBtn.disabled = true;
+
+                const loadingId = showTypingIndicator();
+                const responseMarkdown = await generateGeminiResponse(text);
+                document.getElementById(loadingId).remove();
+                
+                const isErrorHTML = responseMarkdown.includes("<div class='text-red-600");
+                appendMessage('ai', responseMarkdown, !isErrorHTML);
+                sendBtn.disabled = false;
+            });
+
+            if ('webkitSpeechRecognition' in window) {
+                const recognition = new webkitSpeechRecognition();
+                recognition.lang = 'ko-KR';
+                recognition.interimResults = false; 
+                recognition.continuous = true; 
+
+                let isRecording = false;
+                let originalText = ""; 
+                let isManualStop = false; 
+
+                micBtn.addEventListener('click', () => {
+                    if(isRecording) { 
+                        isManualStop = true; 
+                        recognition.stop(); 
+                        return; 
+                    }
+                    isManualStop = false;
+                    originalText = userInput.value;
+                    recognition.start();
+                });
+
+                recognition.onstart = function() {
+                    isRecording = true;
+                    micBtn.classList.add('text-red-500', 'animate-pulse');
+                    micBtn.classList.remove('text-slate-500');
+                    userInput.placeholder = "말씀을 듣고 있습니다... (종료하려면 다시 누르세요)";
+                };
+
+                recognition.onresult = function(event) {
+                    let currentSpeech = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        currentSpeech += event.results[i][0].transcript;
+                    }
+                    userInput.value = originalText + (originalText ? ' ' : '') + currentSpeech;
+                    userInput.dispatchEvent(new Event('input')); 
+                };
+
+                // 강제 릴레이 (이어달리기) 로직
+                recognition.onend = function() {
+                    if (!isManualStop) {
+                        originalText = userInput.value; 
+                        try { recognition.start(); } catch (e) {}
                     } else {
-                        userInput.value = originalText + '\n\n🎤 ' + currentSpeech;
+                        isRecording = false;
+                        micBtn.classList.remove('text-red-500', 'animate-pulse');
+                        micBtn.classList.add('text-slate-500');
+                        userInput.placeholder = "질문을 입력하거나 마이크를 눌러 말씀하세요...";
                     }
-                } else {
-                    userInput.value = originalText + currentSpeech;
-                }
-                
-                userInput.dispatchEvent(new Event('input')); 
-            };
-
-            recognition.onend = function() {
-                if (!isManualStop) {
-                    originalText = userInput.value; 
-                    isRelay = true; 
-                    try {
-                        recognition.start(); // 강제 이어달리기
-                    } catch (e) {
-                        console.error("마이크 릴레이 재시작 오류:", e);
-                    }
-                } else {
-                    isRecording = false;
-                    micBtn.classList.remove('bg-red-100', 'text-red-600', 'border-red-300');
-                    micBtn.classList.add('bg-slate-100', 'text-slate-600', 'border-slate-300');
-                    micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
-                    userInput.placeholder = "법조문을 복사해 붙여넣고 마이크를 눌러 질문하시거나, 직접 입력하세요...";
-                }
-            };
-        } else {
-            micBtn.style.display = 'none'; 
-        }
-
+                };
+            } else {
+                micBtn.style.display = 'none'; 
+            }
+        });
     </script>
 </body>
 </html>
