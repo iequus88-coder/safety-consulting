@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
-<head>
+<html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <!-- 앱 간판 변경: Safety Consulting -->
@@ -131,14 +130,14 @@
 
     <footer class="border-t border-slate-200 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe bg-white print-hide">
         <div class="max-w-5xl mx-auto p-3 md:p-4 pb-6 md:pb-4">
-            <form id="chatForm" class="relative flex items-end gap-2 bg-slate-50 border border-slate-300 rounded-2xl focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200 transition-all p-1">
+            <form id="chatForm" class="relative bg-slate-50 border border-slate-300 rounded-2xl focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200 transition-all p-1">
                 <textarea 
                     id="userInput" 
                     rows="5" 
-                    class="w-full bg-transparent border-none focus:ring-0 resize-none max-h-[300px] min-h-[140px] py-3 px-4 text-sm md:text-base text-slate-800 placeholder-slate-400 rounded-2xl outline-none" 
+                    class="w-full bg-transparent border-none focus:ring-0 resize-none max-h-[300px] min-h-[140px] py-3 pl-4 pr-[110px] md:pr-[120px] text-sm md:text-base text-slate-800 placeholder-slate-400 rounded-2xl outline-none" 
                     placeholder="법규 내용을 붙여넣거나 질문을 입력하세요... (줄바꿈: Shift + Enter)"
                     required></textarea>
-                <div class="p-2 shrink-0 self-end flex gap-2">
+                <div class="absolute bottom-3 right-3 flex gap-2">
                     <!-- 복구된 마이크 버튼 -->
                     <button type="button" id="micBtn" class="w-12 h-12 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-full flex items-center justify-center transition-colors shadow-sm" title="음성 인식 켜기/끄기">
                         <i class="fa-solid fa-microphone text-lg"></i>
@@ -220,6 +219,7 @@
 
             let recognition;
             let isRecording = false;
+            let savedTextBeforeMic = ''; 
 
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -228,17 +228,21 @@
                 recognition.interimResults = true;
                 recognition.lang = 'ko-KR';
 
-                let finalTranscript = '';
-
                 recognition.onstart = () => {
                     isRecording = true;
                     micBtn.classList.remove('bg-slate-200', 'text-slate-600');
                     micBtn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
-                    finalTranscript = userInput.value ? userInput.value + ' ' : '';
+                    
+                    // 마이크를 켜는 순간, 입력창에 있던 기존 텍스트를 안전하게 백업
+                    savedTextBeforeMic = userInput.value ? userInput.value + ' ' : '';
                 };
 
+                // ★수정됨: 안드로이드 중복(메아리) 방지 완벽 로직 적용
                 recognition.onresult = (event) => {
                     let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    // 엔진이 확정 지은 문장(Final)과 아직 듣고 있는 문장(Interim)을 철저히 분리
                     for (let i = event.resultIndex; i < event.results.length; ++i) {
                         if (event.results[i].isFinal) {
                             finalTranscript += event.results[i][0].transcript;
@@ -246,7 +250,13 @@
                             interimTranscript += event.results[i][0].transcript;
                         }
                     }
-                    userInput.value = finalTranscript + interimTranscript;
+                    
+                    // 확정된 문장만 백업(금고)에 영구 저장하여 메아리를 방지
+                    savedTextBeforeMic += finalTranscript;
+                    
+                    // 화면에는 [백업된 확정 문장] + [지금 듣고 있는 임시 문장]을 합쳐서 보여줌
+                    userInput.value = savedTextBeforeMic + interimTranscript;
+                    
                     userInput.style.height = 'auto';
                     userInput.style.height = (userInput.scrollHeight < 300 ? userInput.scrollHeight : 300) + 'px';
                 };
@@ -255,7 +265,7 @@
                     console.error('마이크 인식 에러:', event.error);
                     if(event.error === 'not-allowed') {
                         isRecording = false;
-                        alert("마이크 권한이 차단되었습니다. 브라우저 설정에서 권한을 허용해주세요.");
+                        appendMessage('model', '⚠️ 마이크 권한이 차단되었습니다. 스마트폰 브라우저 설정에서 권한을 허용해주세요.', false, true);
                     }
                 };
 
@@ -303,7 +313,7 @@
 
             saveBtn.addEventListener('click', () => {
                 if(fullConversationHistory.length === 0) {
-                    alert('아직 저장할 대화 내용이 없습니다.');
+                    appendMessage('model', '아직 저장할 대화 내용이 없습니다. 먼저 질문을 입력해 주세요!', false, true);
                     return;
                 }
 
