@@ -107,7 +107,7 @@
                     <p>안녕하십니까. 현장 안전관리자, 소장 및 감독관 여러분을 위한 <strong>통합 안전법규 AI 컨설턴트 (Safety Consulting)</strong>입니다.</p>
                     <p>현장의 복잡한 딜레마나 법규를 편하게 질문해 주십시오.</p>
                     <ul class="list-disc pl-4 mt-2">
-                        <li><strong>1차 답변:</strong> 핵심 요약 및 비교표 (A4 2장 내외)</li>
+                        <li><strong>1차 답변:</strong> 핵심 요약 및 비교표 (A4 2~3장 내외)</li>
                         <li><strong>심화 요청 시:</strong> 논문급 상세 브리핑 (A4 5장 이상)</li>
                         <li><strong>이미지 프롬프트:</strong> 제미나이 캔버스용 안전 교육 이미지 지시문 제공</li>
                     </ul>
@@ -154,19 +154,22 @@
             
             let fullConversationHistory = [];
 
-            // ★ AI 뇌 구조 (3단계 밀당 모드 및 프롬프트 로직 탑재)
+            // ★ AI 뇌 구조 (밀당 모드, 캔버스 고정, 고시/KOSHA 팩트체크 로직 완벽 탑재)
             const systemPrompt = `당신은 대한민국 최고의 현장 맞춤형 산업안전 및 관련 법규 전문 AI 컨설턴트 'Safety Consulting'임.
 [핵심 규칙]
-1. [기본 답변 - 첫 질문]: 바쁜 현장 관리자를 위해 핵심만 요약하여 A4 2~3장 내외로 명료하게 작성할 것. (절대 불필요하게 10장씩 길게 쓰지 말 것)
-2. [심화 답변 - 추가 요청 시]: 사용자가 명시적으로 '심화 대책', '상세히' 등을 요구하면 족쇄를 풀고 A4 5장 이상의 충분한 분량으로 상세 브리핑할 것.
-3. [프롬프트 생성 - 이미지 요청 시]: 사용자가 '이미지 프롬프트 만들어줘' 등을 요구할 경우에만, 1~2장 분량으로 영문/국문 이미지 생성 프롬프트를 정교하게 작성할 것. 이때 반드시 "🎨 **제미나이 캔버스(Gemini Canvas)**를 1순위로 강력 추천합니다."라는 문구를 명시할 것.
-4. [비교표 필수]: 복잡한 법적 기준, 벌칙 등은 반드시 마크다운 표(Table)로 정리할 것.
-5. [다이어그램]: Mermaid 문법 사용 시 노드 안에 괄호(), 따옴표, 특수기호 절대 금지.
-6. [마무리 문구]: 기본/심화 답변 끝에 항상 "💡 심화 대책이나 현장 교육용 [이미지 생성 프롬프트]가 필요하신가요? 언제든 편하게 요청해 주세요." 라고 안내할 것.`;
+1. [1단계 - 기본 답변]: 첫 질문 시 바쁜 현장 관리자를 위해 핵심만 요약하여 A4 2~3장 내외로 명료하게 작성. 복잡한 기준이나 벌칙은 반드시 마크다운 표(Table)로 정리할 것. 절대 10장씩 길게 쓰지 말 것.
+2. [2단계 - 심화 답변]: 사용자가 명시적으로 '심화 대책', '상세히' 등을 요구하면 A4 5장 이상의 충분한 분량으로 논문급 상세 브리핑할 것.
+3. [3단계 - 프롬프트 생성]: 사용자가 '이미지 프롬프트 만들어줘' 등을 요구할 경우에만 1~2장 분량으로 영문/국문 프롬프트를 정교하게 작성. 이때 반드시 "🎨 **제미나이 캔버스(Gemini Canvas)**를 1순위로 강력 추천합니다."라고 명시할 것.
+4. [법적 근거 및 실무 지침 필수 인용 (중요)]:
+   - 관련 법령(산업안전보건법, 시행령, 시행규칙 등) 외에 **'고용노동부 고시'**가 있다면 법적 근거 란에 최우선으로 명시할 것.
+   - 실무 참고용으로 관련된 **'KOSHA Guide'**가 있다면 내용 대신 [※ 실무 참고: KOSHA Guide (가이드명)] 형태로 간략히 언급할 것.
+   - 🚨 [팩트 체크 주의]: 고시 번호나 KOSHA Guide 번호가 100% 확실하지 않거나 최신 개정판이 헷갈릴 경우, 절대 임의의 숫자를 지어내지(할루시네이션) 말고 '번호 생략 후 명칭(제목)'만 기재할 것.
+5. [마무리 문구]: 1단계/2단계 답변 끝에 항상 "💡 심화 대책이나 현장 교육용 [이미지 생성 프롬프트]가 필요하신가요? 언제든 편하게 요청해 주세요." 라고 안내할 것.
+6. [다이어그램]: Mermaid 문법 사용 시 노드 안에 괄호(), 따옴표, 특수기호 절대 금지.`;
 
             let apiChatHistory = [
                 { role: "user", parts: [{ text: systemPrompt }] },
-                { role: "model", parts: [{ text: "네, 완벽히 숙지했습니다. 지시하신 3단계 분량 밸런스 유지, 표 활용, 제미나이 캔버스 1순위 추천 원칙을 엄격히 준수하여 Safety Consulting 업무를 수행하겠습니다." }] }
+                { role: "model", parts: [{ text: "네, 완벽히 숙지했습니다. 지시하신 3단계 분량 밸런스 유지, 표 활용, 제미나이 캔버스 추천, 그리고 고용노동부 고시 및 KOSHA Guide 팩트 체크 원칙을 엄격히 준수하여 Safety Consulting 업무를 수행하겠습니다." }] }
             ];
 
             userInput.addEventListener('input', function() {
@@ -232,6 +235,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
+                // 안전하게 무조건 HTML 파일로 저장되도록 고정
                 a.download = `Safety_Consulting_기록_${new Date().toISOString().slice(0, 10)}.html`;
                 document.body.appendChild(a);
                 a.click();
@@ -297,7 +301,7 @@
                 apiChatHistory.push({ role: "user", parts: [{ text: userText }] });
                 
                 try {
-                    // API 키 팝업 없이 Vercel 서버로 안전하게 다이렉트 통신!
+                    // API 키 노출 없이 Vercel 뒷방으로 통신
                     const response = await fetch('/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -309,6 +313,7 @@
                     
                     const aiText = result.candidates[0].content.parts[0].text;
                     apiChatHistory.push({ role: "model", parts: [{ text: aiText }] });
+                    // 히스토리 관리
                     if (apiChatHistory.length > 15) apiChatHistory = apiChatHistory.slice(apiChatHistory.length - 15);
                     return aiText;
                 } catch (error) {
