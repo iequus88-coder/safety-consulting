@@ -59,9 +59,10 @@
         .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
 
+        /* 모바일 인쇄 최적화 핵심 CSS */
         @media print {
             body { background-color: white !important; height: auto !important; overflow: visible !important; display: block !important; }
-            header, footer, #infoModal, .print-hide { display: none !important; }
+            header, footer, #infoModal, .print-hide, #micBtn, #sendBtn { display: none !important; }
             main { height: auto !important; overflow: visible !important; max-width: 100% !important; padding: 0 !important; }
             .bg-slate-800 { background-color: #f1f5f9 !important; color: #1e293b !important; border: 1px solid #cbd5e1; }
             .text-white { color: #000 !important; }
@@ -107,6 +108,7 @@
         </div>
     </header>
 
+    <!-- 모바일 인쇄 팁 안내 문구 추가 완료 -->
     <div class="bg-amber-50 border-b border-amber-200 text-amber-800 text-xs md:text-sm text-center py-2 px-4 shadow-sm z-20 print-hide">
         <i class="fa-solid fa-print mr-1"></i> <strong>스마트폰 인쇄 팁:</strong> 브라우저 메뉴의 <strong>'공유 ➡️ 인쇄'</strong>를 누르시면 깔끔하게 출력됩니다. (일일 무료 질문 6회 제공)
     </div>
@@ -136,7 +138,12 @@
                     class="w-full bg-transparent border-none focus:ring-0 resize-none max-h-[300px] min-h-[140px] py-3 px-4 text-sm md:text-base text-slate-800 placeholder-slate-400 rounded-2xl outline-none" 
                     placeholder="법규 내용을 붙여넣거나 질문을 입력하세요... (줄바꿈: Shift + Enter)"
                     required></textarea>
-                <div class="p-2 shrink-0 self-end">
+                <div class="p-2 shrink-0 self-end flex gap-2">
+                    <!-- 복구된 마이크 버튼 -->
+                    <button type="button" id="micBtn" class="w-12 h-12 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-full flex items-center justify-center transition-colors shadow-sm" title="음성 인식 켜기/끄기">
+                        <i class="fa-solid fa-microphone text-lg"></i>
+                    </button>
+                    <!-- 전송 버튼 -->
                     <button type="submit" id="sendBtn" class="w-12 h-12 bg-brand-600 hover:bg-brand-700 text-white rounded-full flex items-center justify-center transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-paper-plane mr-0.5 text-lg"></i>
                     </button>
@@ -176,6 +183,7 @@
             const chatForm = document.getElementById('chatForm');
             const userInput = document.getElementById('userInput');
             const sendBtn = document.getElementById('sendBtn');
+            const micBtn = document.getElementById('micBtn');
             const infoBtn = document.getElementById('infoBtn');
             const saveBtn = document.getElementById('saveBtn');
             const printBtn = document.getElementById('printBtn');
@@ -210,7 +218,70 @@
                 }
             });
 
-            // 모달 동작
+            let recognition;
+            let isRecording = false;
+
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = true; // 무한 이어달리기 설정
+                recognition.interimResults = true;
+                recognition.lang = 'ko-KR';
+
+                let finalTranscript = '';
+
+                recognition.onstart = () => {
+                    isRecording = true;
+                    micBtn.classList.remove('bg-slate-200', 'text-slate-600');
+                    micBtn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
+                    finalTranscript = userInput.value ? userInput.value + ' ' : '';
+                };
+
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    userInput.value = finalTranscript + interimTranscript;
+                    userInput.style.height = 'auto';
+                    userInput.style.height = (userInput.scrollHeight < 300 ? userInput.scrollHeight : 300) + 'px';
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('마이크 인식 에러:', event.error);
+                    if(event.error === 'not-allowed') {
+                        isRecording = false;
+                        alert("마이크 권한이 차단되었습니다. 브라우저 설정에서 권한을 허용해주세요.");
+                    }
+                };
+
+                recognition.onend = () => {
+                    if (isRecording) {
+                        // 의도치 않게 끊겼을 경우 무한 이어달리기 재시작
+                        try { recognition.start(); } catch(e) {}
+                    } else {
+                        micBtn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+                        micBtn.classList.add('bg-slate-200', 'text-slate-600');
+                    }
+                };
+
+                micBtn.addEventListener('click', () => {
+                    if (isRecording) {
+                        isRecording = false;
+                        recognition.stop();
+                    } else {
+                        userInput.focus();
+                        try { recognition.start(); } catch(e) { console.error(e); }
+                    }
+                });
+            } else {
+                micBtn.style.display = 'none';
+            }
+
             const openModal = () => {
                 infoModal.classList.remove('hidden');
                 setTimeout(() => {
@@ -357,15 +428,21 @@
             
             const systemPrompt = `당신은 40년 경력의 대한민국 산업안전보건 AI 전문가 'Safety Consulting(세이프 컨설팅)'입니다. 아래 원칙을 반드시 엄수하십시오.
 
-1. [분량 조절의 묘]: 사용자의 첫 질문(1차 기본 답변)에는 바쁜 현장을 위해 A4 2~3장 내외로 핵심만 명료하게 작성할 것. 단, 사용자가 명시적으로 '심화', '추가 대책' 등을 요구할 때만 A4 5장 이상의 상세 브리핑을 제공할 것.
-2. [법적 근거 및 고시/KOSHA]: 관련 '고용노동부 고시'가 있다면 최우선 명시할 것. 'KOSHA Guide'는 내용 전체를 쓰지 말고 [※ 실무 참고: KOSHA Guide (분류번호-가이드명)] 형태로 번호와 이름만 간략히 언급할 것.
-   ⚠️(초강력 경고): 고시나 가이드 번호 연도/호수가 100% 확실하지 않다면 절대 숫자를 임의로 지어내지(할루시네이션) 말고, 번호를 생략한 채 '가이드 명칭'만 기재할 것.
-3. [다이어그램 에러 방지]: 타임라인이나 흐름도 작성 시, **반드시 마크다운 코드블록(시작에 \`\`\`mermaid, 끝에 \`\`\`)으로 완전히 감싸서 출력**할 것. 꼬리표 누락 절대 금지.
-4. [프롬프트 제공]: 답변 마지막에 "💡 심화 대책이나 현장 교육용 [이미지 생성 프롬프트]가 필요하신가요?"라고 안내할 것. 사용자가 프롬프트를 요청하면, 해당 상황을 묘사한 이미지 프롬프트를 영/국문으로 제공하되, 반드시 **'제미나이 캔버스(Gemini Canvas)'를 1순위 도구로 적극 추천**한다고 명시할 것.`;
+1. [답변 분량 3단계 조율]:
+   - (1단계 기본답변): 첫 질문에는 바쁜 현장을 위해 A4 2~3장 내외로 핵심만 명료하게 요약 작성. 마지막엔 "💡 심화 대책이나 현장 교육용 [이미지 생성 프롬프트]가 필요하신가요?"라고만 묻기.
+   - (2단계 심화답변): 사용자가 '심화, 추가대책'을 요구할 때만 족쇄를 풀고 A4 5장 이상 논문급 상세 브리핑 제공.
+   - (3단계 프롬프트): 사용자가 '프롬프트'를 별도 요구할 때만 A4 1~2장 분량으로 영문/국문 프롬프트를 짜주고, 도구로 **'제미나이 캔버스(Gemini Canvas)'를 1순위로 적극 추천**할 것.
 
-            // 시스템 프롬프트를 첫 번째 대화 컨텍스트로 몰래 밀어넣기
+2. 🔍 [최신 법규 실시간 검색 강제 (가장 중요!)]: 
+   - 사용자가 '고용노동부 고시'나 'KOSHA Guide' 등을 언급하거나 질문하면, 절대 자신이 가진 과거 2~3년 전 기억에 의존하여 답변하지 마십시오.
+   - **무조건 구글 검색 기능(Google Search)을 즉각 수행하여 현재 시점(2026년도 기준) 가장 최신으로 제·개정된 고시 번호(예: 고용노동부고시 제202X-OO호)와 KOSHA Guide 번호(예: B-M-O-202X)를 파악한 후 대답할 것.**
+   - ⚠️(초강력 경고): 아무리 검색해도 확실한 최신 번호가 나오지 않거나 불확실하다면, 절대 연도나 숫자를 그럴싸하게 임의로 지어내지(할루시네이션) 말고 '번호 생략' 후 가이드/고시 명칭만 기재할 것. 과거 연도(2023, 2024 등) 자료만 나올 경우 최신 개정 여부를 검색으로 다시 확인할 것.
+   - 고용노동부 고시는 답변의 법적 근거 란에 최우선 명시하고, KOSHA Guide는 내용 전체를 쓰지 말고 [※ 실무 참고: KOSHA Guide (분류번호-가이드명)] 형태로 기재할 것.
+
+3. [다이어그램 에러 차단]: 타임라인이나 흐름도 작성 시, 반드시 처음과 끝을 마크다운 코드블록(\`\`\`mermaid 와 \`\`\`)으로 완전히 감싸서 출력할 것. 노드 안에 괄호(), 따옴표, 특수기호 절대 금지.`;
+
             apiChatHistory.push({ role: "user", parts: [{ text: systemPrompt }] });
-            apiChatHistory.push({ role: "model", parts: [{ text: "네, 명심하겠습니다. Safety Consulting의 뇌구조 규칙을 완벽하게 숙지하고 모든 조건(분량, KOSHA 팩트체크, Mermaid 꼬리표, 제미나이 캔버스 추천 등)을 준수하여 답변을 시작하겠습니다." }] });
+            apiChatHistory.push({ role: "model", parts: [{ text: "네, 명심하겠습니다. Safety Consulting의 뇌구조 규칙을 숙지하고, 옛날 정보로 답변하지 않도록 반드시 실시간 검색(Search)을 통해 최신 고시 및 KOSHA Guide를 팩트체크하여 제공하겠습니다." }] });
 
             async function fetchWithBackoff(url, options, maxRetries = 3) {
                 let retries = 0; let delay = 1000;
@@ -400,7 +477,7 @@
                     if (candidate && candidate.content?.parts?.[0]?.text) {
                         let aiText = candidate.content.parts[0].text;
                         apiChatHistory.push({ role: "model", parts: [{ text: aiText }] });
-                        // 최근 대화 내용만 유지 (메모리 관리, 시스템 프롬프트 포함 12개 유지)
+                        // 최근 대화 유지 (시스템 프롬프트 포함 12개)
                         if (apiChatHistory.length > 12) {
                             const sysPrompts = apiChatHistory.slice(0, 2);
                             const recentPrompts = apiChatHistory.slice(apiChatHistory.length - 10);
@@ -420,7 +497,13 @@
                 const text = userInput.value.trim();
                 if(!text) return;
 
-                // 1. 치트키(관리자 모드 해제) 확인 로직
+                // 마이크 켜져 있으면 끄기
+                if(isRecording) {
+                    isRecording = false;
+                    recognition.stop();
+                }
+
+                // 관리자 모드(치트키) 상태 확인
                 if (text === '관리자모드해제') {
                     isAdmin = true;
                     localStorage.setItem('isSafetyAdmin', 'true');
@@ -429,7 +512,7 @@
                     return;
                 }
 
-                // 2. 일반 사용자 하루 6회 제한 로직
+                // 일반 사용자 하루 6회 제한 로직
                 if (!isAdmin) {
                     const today = new Date().toISOString().split('T')[0];
                     let usageData = JSON.parse(localStorage.getItem('safetyConsultingUsage')) || { date: today, count: 0 };
