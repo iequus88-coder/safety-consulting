@@ -82,8 +82,9 @@
     <header class="bg-brand-800 text-white shadow-md z-10 shrink-0">
         <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-brand-600 border-2 border-brand-200 flex items-center justify-center text-xl shadow-inner">
-                    <i class="fa-solid fa-shield-halved text-white"></i>
+                <!-- 새 로고 이미지로 교체된 부분 (헤더) -->
+                <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner overflow-hidden border-2 border-brand-200">
+                    <img src="LOGO 완성본_20260901_075012606.jpg" alt="Safety Consulting Logo" class="w-full h-full object-cover">
                 </div>
                 <div>
                     <h1 class="text-lg font-bold leading-tight">Safety Consulting</h1>
@@ -111,8 +112,9 @@
 
     <main class="flex-1 overflow-y-auto w-full max-w-5xl mx-auto p-4 md:p-6 flex flex-col gap-6" id="chatContainer">
         <div class="flex gap-4 w-full animate-fade-in initial-msg">
-            <div class="w-10 h-10 rounded-full bg-brand-600 flex-shrink-0 flex items-center justify-center shadow-md text-white mt-1">
-                <i class="fa-solid fa-shield-halved"></i>
+            <!-- 초기 안내 메시지 로고 교체 -->
+            <div class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-md mt-1 overflow-hidden">
+                <img src="LOGO 완성본_20260901_075012606.jpg" alt="Safety Consulting Logo" class="w-full h-full object-cover">
             </div>
             <div class="flex flex-col gap-1 max-w-[90%] md:max-w-[80%]">
                 <span class="text-sm font-semibold text-slate-700">Safety Consulting</span>
@@ -339,9 +341,10 @@
                 
                 if (!isSystemMsg) fullConversationHistory.push({ role: sender, content: text });
                 
+                // 챗봇 아바타 로고 이미지 교체
                 let avatar = isUser 
                     ? `<div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-300 flex-shrink-0 flex items-center justify-center shadow-inner text-white mt-1"><i class="fa-solid fa-user"></i></div>`
-                    : `<div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-brand-600 flex-shrink-0 flex items-center justify-center shadow-md text-white mt-1"><i class="fa-solid fa-shield-halved"></i></div>`;
+                    : `<div class="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-md mt-1 overflow-hidden"><img src="LOGO 완성본_20260901_075012606.jpg" alt="Safety Consulting Logo" class="w-full h-full object-cover"></div>`;
 
                 marked.setOptions({ gfm: true, breaks: true });
                 let contentHtml = isMarkdown ? DOMPurify.sanitize(marked.parse(text)) : text.replace(/\n/g, '<br>');
@@ -387,8 +390,9 @@
                 const wrapper = document.createElement('div');
                 wrapper.id = 'typingIndicator';
                 wrapper.className = `flex gap-4 w-full animate-fade-in`;
+                // 타이핑 인디케이터 로고 교체
                 wrapper.innerHTML = `
-                    <div class="w-10 h-10 rounded-full bg-brand-600 flex-shrink-0 flex items-center justify-center shadow-md text-white mt-1"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-md mt-1 overflow-hidden"><img src="LOGO 완성본_20260901_075012606.jpg" alt="Safety Consulting Logo" class="w-full h-full object-cover"></div>
                     <div class="flex flex-col gap-1 max-w-[80%] items-start">
                         <span class="text-sm font-semibold text-slate-700">Safety Consulting</span>
                         <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center h-12"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
