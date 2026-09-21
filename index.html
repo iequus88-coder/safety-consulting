@@ -1,5 +1,7 @@
+HTML
 <!DOCTYPE html>
-<html lang="ko"><head>
+<html lang="ko">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Safety Consulting - 산업안전 AI 컨설턴트</title>
@@ -82,13 +84,13 @@
     <header class="bg-brand-800 text-white shadow-md z-10 shrink-0">
         <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <!-- 새 로고 이미지로 교체된 부분 (헤더) -->
-                <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner overflow-hidden border-2 border-brand-200">
-                    <img src="LOGO 완성본_20260901_075012606.jpg" alt="Safety Consulting Logo" class="w-full h-full object-cover">
+                <!-- 로고 직사각형 변경 및 비율(object-contain) 유지 적용 -->
+                <div class="w-12 h-10 rounded-md bg-white flex items-center justify-center shadow-sm overflow-hidden border-2 border-brand-200">
+                    <img src="로고 완성 직사각형 _20260920_161232496.png" alt="Safety Consulting Logo" class="w-full h-full object-contain p-0.5">
                 </div>
                 <div>
                     <h1 class="text-lg font-bold leading-tight">Safety Consulting</h1>
-                    <p class="text-xs text-brand-100 opacity-90">40년 경력 산업안전 AI 전문가</p>
+                    <p class="text-xs text-brand-100 opacity-90">현장 안전 실무 20년 경력 AI 전문가</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -112,16 +114,16 @@
 
     <main class="flex-1 overflow-y-auto w-full max-w-5xl mx-auto p-4 md:p-6 flex flex-col gap-6" id="chatContainer">
         <div class="flex gap-4 w-full animate-fade-in initial-msg">
-            <!-- 초기 안내 메시지 로고 교체 -->
-            <div class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-md mt-1 overflow-hidden">
-                <img src="LOGO 완성본_20260901_075012606.jpg" alt="Safety Consulting Logo" class="w-full h-full object-cover">
+            <!-- 초기 안내 메시지 아바타 로고 변경 -->
+            <div class="w-10 h-10 md:w-12 md:h-12 rounded-md bg-white flex-shrink-0 flex items-center justify-center shadow-sm mt-1 overflow-hidden border border-slate-200">
+                <img src="로고 완성 직사각형 _20260920_161232496.png" alt="Safety Consulting Logo" class="w-full h-full object-contain p-0.5">
             </div>
             <div class="flex flex-col gap-1 max-w-[90%] md:max-w-[80%]">
                 <span class="text-sm font-semibold text-slate-700">Safety Consulting</span>
                 <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm prose text-sm md:text-base">
-                    <p>안녕하십니까. 산업안전 분야 40년 경력의 베테랑 전문가 <strong>Safety Consulting</strong>입니다.</p>
-                    <p>현장의 복잡하고 애매한 법규 (고시, KOSHA GUIDE, 건설기술 진흥법 등 주변의 법규) 때문에 어려움을 겪고 계십니까?</p>
-                    <p>궁금한 점을 편하게 질문해 주십시오. 1차 답변에서는 핵심만 요약해드리며, 추가자료 (<strong>이해를 도울 이미지 생성 프롬프트</strong>, <strong>심화 대책 및 컨설팅 요청</strong> 등)를 원하실 경우 완벽하게 대응해드립니다.</p>
+                    <p>안녕하십니까. 현대자동차 및 현장 안전 실무 <strong>20년 경력</strong>의 베테랑 전문가 <strong>Safety Consulting</strong>입니다.</p>
+                    <p>현장의 복잡하고 애매한 법규 (고시, KOSHA GUIDE, 건설기술 진흥법 등) 때문에 어려움을 겪고 계십니까?</p>
+                    <p>궁금한 점을 편하게 질문해 주십시오. 모든 답변은 <strong>바쁘신 현장을 위해 최상단 3줄 요약 또는 표(Table)로 핵심을 먼저 짚어드리며</strong>, 추가로 심화 대책 및 이해를 도울 이미지 생성 프롬프트를 원하실 경우 완벽하게 지원해 드립니다.</p>
                 </div>
             </div>
         </div>
@@ -130,18 +132,15 @@
     <footer class="border-t border-slate-200 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe bg-white print-hide">
         <div class="max-w-5xl mx-auto p-3 md:p-4 pb-6 md:pb-4">
             <form id="chatForm" class="relative bg-slate-50 border border-slate-300 rounded-2xl focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200 transition-all p-1">
-                <!-- Javascript에서 기기에 따라 패딩(pr-..)과 placeholder가 자동으로 변경됩니다 -->
                 <textarea 
                     id="userInput" 
                     rows="5" 
                     class="w-full bg-transparent border-none focus:ring-0 resize-none max-h-[300px] min-h-[140px] py-3 pl-4 text-sm md:text-base text-slate-800 placeholder-slate-400 rounded-2xl outline-none" 
                     required></textarea>
                 <div class="absolute bottom-3 right-3 flex gap-2">
-                    <!-- PC 환경용 마이크 버튼 (모바일에서는 숨김 처리됨) -->
                     <button type="button" id="micBtn" class="hidden w-12 h-12 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-full flex items-center justify-center transition-colors shadow-sm" title="음성 인식 켜기/끄기">
                         <i class="fa-solid fa-microphone text-lg"></i>
                     </button>
-                    <!-- 전송 버튼 -->
                     <button type="submit" id="sendBtn" class="w-12 h-12 bg-brand-600 hover:bg-brand-700 text-white rounded-full flex items-center justify-center transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-paper-plane mr-0.5 text-lg"></i>
                     </button>
@@ -156,15 +155,15 @@
     <div id="infoModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 print-hide">
         <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden transform transition-all scale-95 opacity-0" id="modalContent">
             <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-book-open text-brand-600 mr-2"></i> Safety Consulting 분석 시스템</h3>
+                <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-book-open text-brand-600 mr-2"></i> Safety Consulting 시스템</h3>
                 <button id="closeModal" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <div class="p-6 text-sm text-slate-600 space-y-4 max-h-[60vh] overflow-y-auto">
                 <ul class="space-y-3">
-                    <li class="flex gap-3"><span class="text-xl">⚡</span> <div><strong>[기본 요약 해설]</strong><br>바쁜 현장을 위한 명확한 2~3장 분량의 결론</div></li>
-                    <li class="flex gap-3"><span class="text-xl">📜</span> <div><strong>[고시 및 KOSHA Guide]</strong><br>법적 구속력이 있는 최신 고시 및 실무 가이드 팩트 체크</div></li>
-                    <li class="flex gap-3"><span class="text-xl">🖼️</span> <div><strong>[시각화 및 다이어그램]</strong><br>적용 기준 도표 및 에러 없는 깔끔한 타임라인 제공</div></li>
-                    <li class="flex gap-3"><span class="text-xl">💡</span> <div><strong>[심화 대책 및 프롬프트]</strong><br>현장 맞춤형 해결 방안 및 교육용 제미나이 캔버스 프롬프트 지원</div></li>
+                    <li class="flex gap-3"><span class="text-xl">⚡</span> <div><strong>[기본 요약 해설]</strong><br>바쁜 현장을 위한 명확한 최상단 3줄 요약 및 표 지원</div></li>
+                    <li class="flex gap-3"><span class="text-xl">📜</span> <div><strong>[고시 및 KOSHA Guide]</strong><br>법적 구속력이 있는 최신 고시 및 실무 가이드 실시간 팩트 체크</div></li>
+                    <li class="flex gap-3"><span class="text-xl">🖼️</span> <div><strong>[시각화 및 다이어그램]</strong><br>적용 기준 도표 및 깔끔한 타임라인 제공</div></li>
+                    <li class="flex gap-3"><span class="text-xl">💡</span> <div><strong>[심화 대책 및 프롬프트]</strong><br>현장 맞춤형 해결 방안 및 교육용 구글 제미나이 그림 생성 프롬프트 지원</div></li>
                 </ul>
             </div>
             <div class="p-4 border-t border-slate-100 bg-slate-50 text-right">
@@ -190,19 +189,14 @@
             const closeModalBtn = document.getElementById('closeModalBtn');
             const modalContent = document.getElementById('modalContent');
             
-            // 관리자 모드(치트키) 상태 확인
             let isAdmin = localStorage.getItem('isSafetyAdmin') === 'true';
-
-            // ★ 똑순이의 하이브리드(스마트폰/PC) 판별 및 UI 맞춤 설정
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             
             if (isMobile) {
-                // 모바일 환경: 마이크 버튼 숨김, 글씨 가리지 않게 우측 여백 좁게 설정, 안내문구 변경
                 micBtn.style.display = 'none';
                 userInput.classList.add('pr-[60px]', 'md:pr-[70px]');
                 userInput.placeholder = "질문을 입력하세요... (음성은 스마트폰 자판의 🎤마이크 아이콘 사용)";
             } else {
-                // PC 환경: 마이크 버튼 노출, 우측 여백 넓게 설정, 안내문구 변경
                 micBtn.classList.remove('hidden');
                 userInput.classList.add('pr-[110px]', 'md:pr-[120px]');
                 userInput.placeholder = "법규를 붙여넣거나 🎤마이크를 눌러 말씀해 주셔요... (줄바꿈: Shift + Enter)";
@@ -260,7 +254,6 @@
                 };
 
                 recognition.onerror = (event) => {
-                    console.error('마이크 인식 에러:', event.error);
                     if(event.error === 'not-allowed') {
                         isRecording = false;
                         appendMessage('model', '⚠️ 마이크 권한이 차단되었습니다. 브라우저 설정에서 마이크 권한을 허용해주세요.', false, true);
@@ -277,13 +270,12 @@
                     if (isRecording) {
                         recognition.stop();
                     } else {
-                        userInput.value = ''; // 기존 텍스트 지우고 새로 입력
+                        userInput.value = ''; 
                         userInput.focus();
                         try { recognition.start(); } catch(e) { console.error(e); }
                     }
                 });
             } else if (!isMobile) {
-                // PC인데 브라우저가 지원하지 않는 경우
                 micBtn.style.display = 'none';
                 userInput.classList.remove('pr-[110px]', 'md:pr-[120px]');
                 userInput.classList.add('pr-[60px]', 'md:pr-[70px]');
@@ -341,10 +333,10 @@
                 
                 if (!isSystemMsg) fullConversationHistory.push({ role: sender, content: text });
                 
-                // 챗봇 아바타 로고 이미지 교체
+                // 챗봇 아바타 로고 직사각형(rounded-md) 적용
                 let avatar = isUser 
                     ? `<div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-300 flex-shrink-0 flex items-center justify-center shadow-inner text-white mt-1"><i class="fa-solid fa-user"></i></div>`
-                    : `<div class="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-md mt-1 overflow-hidden"><img src="LOGO 완성본_20260901_075012606.jpg" alt="Safety Consulting Logo" class="w-full h-full object-cover"></div>`;
+                    : `<div class="w-8 h-8 md:w-12 md:h-12 rounded-md bg-white flex-shrink-0 flex items-center justify-center shadow-sm mt-1 overflow-hidden border border-slate-200"><img src="로고 완성 직사각형 _20260920_161232496.png" alt="Safety Consulting Logo" class="w-full h-full object-contain p-0.5"></div>`;
 
                 marked.setOptions({ gfm: true, breaks: true });
                 let contentHtml = isMarkdown ? DOMPurify.sanitize(marked.parse(text)) : text.replace(/\n/g, '<br>');
@@ -390,9 +382,8 @@
                 const wrapper = document.createElement('div');
                 wrapper.id = 'typingIndicator';
                 wrapper.className = `flex gap-4 w-full animate-fade-in`;
-                // 타이핑 인디케이터 로고 교체
                 wrapper.innerHTML = `
-                    <div class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-md mt-1 overflow-hidden"><img src="LOGO 완성본_20260901_075012606.jpg" alt="Safety Consulting Logo" class="w-full h-full object-cover"></div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-md bg-white flex-shrink-0 flex items-center justify-center shadow-sm mt-1 overflow-hidden border border-slate-200"><img src="로고 완성 직사각형 _20260920_161232496.png" alt="Safety Consulting Logo" class="w-full h-full object-contain p-0.5"></div>
                     <div class="flex flex-col gap-1 max-w-[80%] items-start">
                         <span class="text-sm font-semibold text-slate-700">Safety Consulting</span>
                         <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center h-12"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
@@ -410,23 +401,23 @@
             const apiUrl = `/api/chat`; 
             let apiChatHistory = [];
             
-            const systemPrompt = `당신은 40년 경력의 대한민국 산업안전보건 AI 전문가 'Safety Consulting(세이프 컨설팅)'입니다. 아래 원칙을 반드시 엄수하십시오.
+            // ★ 시스템 프롬프트 업데이트 (20년 경력, 3줄 요약 강제, 제미나이 그림 링크 적용)
+            const systemPrompt = `당신은 현대자동차 및 현장 안전 실무 20년 경력의 대한민국 산업안전보건 AI 전문가 'Safety Consulting(세이프 컨설팅)'입니다. 아래 원칙을 반드시 엄수하십시오.
 
-1. [답변 분량 3단계 조율]:
+1. [최상단 3줄 요약/표 강제]: 단순 인사말이 아닌 '안전/법규 관련 질의'에 대해서는 서두를 생략하고 무조건 최상단에 3줄 요약 또는 핵심 표(Table)를 먼저 제시한 후 상세 설명을 시작할 것.
+2. [답변 분량 3단계 조율]:
    - (1단계 기본답변): 첫 질문에는 바쁜 현장을 위해 A4 2~3장 내외로 핵심만 명료하게 요약 작성. 마지막엔 "💡 심화 대책이나 현장 교육용 [이미지 생성 프롬프트]가 필요하신가요?"라고만 묻기.
-   - (2단계 심화답변): 사용자가 '심화, 추가대책'을 요구할 때만 족쇄를 풀고 A4 5장 이상 논문급 상세 브리핑 제공.
-   - (3단계 프롬프트): 사용자가 '프롬프트'를 별도 요구할 때만 A4 1~2장 분량으로 영문/국문 프롬프트를 짜주고, 도구로 **'제미나이 캔버스(Gemini Canvas)'를 1순위로 적극 추천**할 것.
-
-2. 🔍 [최신 법규 실시간 검색 강제 (가장 중요!)]: 
-   - 사용자가 '고용노동부 고시'나 'KOSHA Guide' 등을 언급하거나 질문하면, 절대 자신이 가진 과거 2~3년 전 기억에 의존하여 답변하지 마십시오.
-   - **무조건 구글 검색 기능(Google Search)을 즉각 수행하여 현재 시점(2026년도 기준) 가장 최신으로 제·개정된 고시 번호(예: 고용노동부고시 제202X-OO호)와 KOSHA Guide 번호(예: B-M-O-202X)를 파악한 후 대답할 것.**
-   - ⚠️(초강력 경고): 아무리 검색해도 확실한 최신 번호가 나오지 않거나 불확실하다면, 절대 연도나 숫자를 그럴싸하게 임의로 지어내지(할루시네이션) 말고 '번호 생략' 후 가이드/고시 명칭만 기재할 것. 과거 연도(2023, 2024 등) 자료만 나올 경우 최신 개정 여부를 검색으로 다시 확인할 것.
+   - (2단계 심화답변): 사용자가 '심화, 추가대책'을 요구할 때만 A4 5장 이상 논문급 상세 브리핑 제공.
+   - (3단계 프롬프트): 사용자가 '프롬프트'를 별도 요구할 때만 A4 1~2장 분량으로 영문/국문 프롬프트를 짜주고, 하단에 반드시 다음 마크다운 링크를 추가할 것: [🎨 구글 제미나이에서 그림 그리기](https://gemini.google.com/) (구글 로그인 필요)
+3. 🔍 [최신 법규 실시간 검색 강제 (가장 중요!)]: 
+   - 사용자가 '고용노동부 고시'나 'KOSHA Guide' 등을 언급하거나 질문하면, 절대 자신이 가진 과거 기억에 의존하여 답변하지 마십시오.
+   - 무조건 구글 검색 기능(Google Search)을 즉각 수행하여 현재 시점(2026년도 기준) 가장 최신으로 제·개정된 고시 번호와 KOSHA Guide 번호를 파악한 후 대답할 것.
+   - ⚠️(초강력 경고): 아무리 검색해도 확실한 최신 번호가 나오지 않거나 불확실하다면, 절대 임의로 지어내지 말고 '번호 생략' 후 가이드/고시 명칭만 기재할 것.
    - 고용노동부 고시는 답변의 법적 근거 란에 최우선 명시하고, KOSHA Guide는 내용 전체를 쓰지 말고 [※ 실무 참고: KOSHA Guide (분류번호-가이드명)] 형태로 기재할 것.
-
-3. [다이어그램 에러 차단]: 타임라인이나 흐름도 작성 시, 반드시 처음과 끝을 마크다운 코드블록(\`\`\`mermaid 와 \`\`\`)으로 완전히 감싸서 출력할 것. 노드 안에 괄호(), 따옴표, 특수기호 절대 금지.`;
+4. [다이어그램 에러 차단]: 타임라인이나 흐름도 작성 시, 반드시 처음과 끝을 마크다운 코드블록(\`\`\`mermaid 와 \`\`\`)으로 완전히 감싸서 출력할 것. 노드 안에 괄호(), 따옴표, 특수기호 절대 금지.`;
 
             apiChatHistory.push({ role: "user", parts: [{ text: systemPrompt }] });
-            apiChatHistory.push({ role: "model", parts: [{ text: "네, 명심하겠습니다. Safety Consulting의 뇌구조 규칙을 숙지하고, 옛날 정보로 답변하지 않도록 반드시 실시간 검색(Search)을 통해 최신 고시 및 KOSHA Guide를 팩트체크하여 제공하겠습니다." }] });
+            apiChatHistory.push({ role: "model", parts: [{ text: "네, 명심하겠습니다. Safety Consulting의 뇌구조 규칙을 숙지하고, 20년 실무 경력을 바탕으로 서두 없이 3줄 요약부터 제공하며 실시간 검색(Search)을 통해 최신 고시 및 KOSHA Guide를 팩트체크하여 제공하겠습니다." }] });
 
             async function fetchWithBackoff(url, options, maxRetries = 3) {
                 let retries = 0; let delay = 1000;
