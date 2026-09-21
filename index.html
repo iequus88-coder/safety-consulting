@@ -1,4 +1,3 @@
-HTML
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -227,6 +226,7 @@ HTML
 
             let recognition;
             let isRecording = false;
+            let finalTranscript = ''; // 추가: 누적된 최종 텍스트를 저장할 변수를 밖으로 분리
 
             if (!isMobile && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -237,17 +237,25 @@ HTML
 
                 recognition.onstart = () => {
                     isRecording = true;
+                    finalTranscript = userInput.value; // 추가: 시작할 때 이미 입력된 텍스트 보존
                     micBtn.classList.remove('bg-slate-200', 'text-slate-600');
                     micBtn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
                 };
 
                 recognition.onresult = (event) => {
                     let interimTranscript = '';
-                    let finalTranscript = '';
+                    
                     for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
-                        else interimTranscript += event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                             // 수정: 완료된 인식 결과를 finalTranscript에 '누적(+=)' 시킴
+                             finalTranscript += event.results[i][0].transcript;
+                        } else {
+                             // 수정: 진행 중인 인식 결과는 interimTranscript에 따로 저장
+                             interimTranscript += event.results[i][0].transcript;
+                        }
                     }
+                    
+                    // 수정: 누적된 최종 텍스트 + 현재 진행 중인 텍스트를 화면에 표시
                     userInput.value = finalTranscript + interimTranscript;
                     userInput.style.height = 'auto';
                     userInput.style.height = (userInput.scrollHeight < 300 ? userInput.scrollHeight : 300) + 'px';
