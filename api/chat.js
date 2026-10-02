@@ -12,7 +12,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Invalid request body' });
         }
 
-        // Vercel 환경 변수에 설정된 2개의 API 키 (동진님 스크린샷과 정확히 동일한 이름)
+        // Vercel 환경 변수에 설정된 2개의 API 키 가져오기
         const mainKey = process.env.GEMINI_API_KEY; 
         const backupKey = process.env.GEMINI_BACKUP_APIKEY;
 
@@ -34,9 +34,9 @@ export default async function handler(req, res) {
             return res.status(200).json({ candidates: [{ content: { parts: [{ text }] } }] });
 
         } catch (mainError) {
-            console.warn("메인 API 키 호출 실패, 토큰 초과 등 에러 발생:", mainError.message);
+            console.warn("메인 API 키 호출 실패, 에러 발생:", mainError.message);
             
-            // 백업 키가 Vercel에 등록되어 있다면 백업 키로 재도전 (쌍발 엔진 가동!)
+            // 예비(백업) 키가 있다면 쌍발 엔진 가동!
             if (backupKey) {
                 console.log("예비 API 키(GEMINI_BACKUP_APIKEY)로 전환하여 구출 작전 재시도 중...");
                 genAI = new GoogleGenerativeAI(backupKey);
