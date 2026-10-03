@@ -61,7 +61,7 @@
 
         @media print {
             body { background-color: white !important; height: auto !important; overflow: visible !important; display: block !important; }
-            header, footer, #infoModal, .print-hide, #micBtn, #sendBtn { display: none !important; }
+            header, footer, #infoModal, #micErrorModal, .print-hide, #micBtn, #sendBtn { display: none !important; }
             main { height: auto !important; overflow: visible !important; max-width: 100% !important; padding: 0 !important; }
             .bg-slate-800 { background-color: #f1f5f9 !important; color: #1e293b !important; border: 1px solid #cbd5e1; }
             .text-white { color: #000 !important; }
@@ -149,6 +149,7 @@
         </div>
     </footer>
 
+    <!-- 기존 Info 모달 -->
     <div id="infoModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 print-hide">
         <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden transform transition-all scale-95 opacity-0" id="modalContent">
             <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
@@ -169,6 +170,42 @@
         </div>
     </div>
 
+    <!-- 🚨 새롭게 추가된 마이크 차단(웨일/엣지) 안내 팝업 -->
+    <div id="micErrorModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 print-hide">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full overflow-hidden transform transition-all scale-95 opacity-0 text-center" id="micErrorContent">
+            <div class="bg-red-50 px-6 py-4 border-b border-red-100 relative">
+                <h3 class="text-lg font-bold text-red-600"><i class="fa-solid fa-microphone-slash mr-2"></i> 마이크 기능 제한 안내</h3>
+                <p class="text-xs text-red-500 mt-1 font-semibold">(앱 고장이 아닌 브라우저 보안 정책입니다)</p>
+            </div>
+            <div class="p-6 text-sm text-slate-700 space-y-5 text-left">
+                <div class="flex items-start gap-4">
+                    <i class="fa-regular fa-keyboard text-3xl text-brand-600 mt-1 w-8 text-center"></i>
+                    <div>
+                        <strong class="text-base text-slate-800">1. 문자 입력</strong>
+                        <p class="text-slate-600 mt-1">하단 창에 직접 글자를 입력하셔도 찰떡같이 답변해 드립니다!</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4">
+                    <i class="fa-brands fa-chrome text-3xl text-green-600 mt-1 w-8 text-center"></i>
+                    <div>
+                        <strong class="text-base text-slate-800">2. 구글 크롬(Chrome) 이용</strong>
+                        <p class="text-slate-600 mt-1">PC에서 꼭 음성으로 질문하시려면 크롬 브라우저로 접속해 주세요.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4">
+                    <i class="fa-solid fa-mobile-screen-button text-3xl text-amber-500 mt-1 w-8 text-center"></i>
+                    <div>
+                        <strong class="text-base text-slate-800">3. 스마트폰 자판 마이크 <span class="text-lg">🎤</span></strong>
+                        <p class="text-slate-600 mt-1 font-semibold">휴대폰 키보드 자판에 내장된 마이크 버튼을 누르시면 아주 잘 됩니다! (강력 추천)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50">
+                <button id="closeMicModalBtn" class="w-full py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition font-bold text-base">확인 (닫기)</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'Pretendard, sans-serif' });
 
@@ -185,6 +222,11 @@
             const closeModal = document.getElementById('closeModal');
             const closeModalBtn = document.getElementById('closeModalBtn');
             const modalContent = document.getElementById('modalContent');
+            
+            // 새 팝업 변수
+            const micErrorModal = document.getElementById('micErrorModal');
+            const micErrorContent = document.getElementById('micErrorContent');
+            const closeMicModalBtn = document.getElementById('closeMicModalBtn');
             
             let isAdmin = localStorage.getItem('isSafetyAdmin') === 'true';
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -209,7 +251,6 @@
 
             let fullConversationHistory = [];
 
-            // 🚨 MS 엣지 한글 지워짐(IME 조합) 방어 코드 추가
             let isComposing = false;
             
             function adjustHeight() {
@@ -225,16 +266,32 @@
             });
             
             userInput.addEventListener('input', function() {
-                if (!isComposing) adjustHeight(); // 한글 완성 후에만 크기 조절
+                if (!isComposing) adjustHeight(); 
             });
 
             userInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                    if (isComposing) return; // 한글 입력 중 엔터키 오작동 방지
+                    if (isComposing) return; 
                     e.preventDefault();
                     if(this.value.trim() !== '') chatForm.dispatchEvent(new Event('submit'));
                 }
             });
+
+            // 팝업 열기/닫기 함수
+            function showMicError() {
+                micErrorModal.classList.remove('hidden');
+                setTimeout(() => {
+                    micErrorContent.classList.remove('scale-95', 'opacity-0');
+                    micErrorContent.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            }
+            function closeMicError() {
+                micErrorContent.classList.remove('scale-100', 'opacity-100');
+                micErrorContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => micErrorModal.classList.add('hidden'), 200);
+            }
+            closeMicModalBtn.addEventListener('click', closeMicError);
+            micErrorModal.addEventListener('click', (e) => { if(e.target === micErrorModal) closeMicError(); });
 
             let recognition;
             let isRecording = false;
@@ -283,12 +340,12 @@
                     } else {
                         userInput.value = ''; 
                         userInput.focus();
-                        // 🚨 엣지/웨일에서 음성 미지원 시 먹통 방지 (오류 안내)
+                        // 🚨 엣지/웨일에서 실패 시 새로운 그림 팝업창(모달) 띄우기
                         try { 
                             recognition.start(); 
                         } catch(e) { 
                             console.error(e);
-                            alert('현재 사용 중인 브라우저(MS 엣지, 웨일 등)에서는 구글 음성 인식을 지원하지 않습니다. 크롬(Chrome) 브라우저를 이용해 주세요.');
+                            showMicError();
                             isRecording = false;
                             micBtn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
                             micBtn.classList.add('bg-slate-200', 'text-slate-600');
