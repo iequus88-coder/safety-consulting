@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>안전 컨설팅 AI 시작하기</title>
+    
+    <!-- [추가된 핵심 코드 1] 설문지 프레임 창에 갇혔을 때 전체 화면으로 즉시 탈출 -->
+    <script>
+        if (window.top !== window.self) {
+            window.top.location.href = window.location.href;
+        }
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; background-color: #f3f4f6; }
@@ -114,16 +122,16 @@
             }
         };
 
-        // 모바일 앱 시작 분기 로직
+        // 모바일 앱 시작 분기 로직 (수정됨: window.top 추가)
         function startMobileApp() {
             if (isAndroid) {
                 // 안드로이드: 크롬 강제 실행 인텐트
-                location.href = `intent://${appUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
+                window.top.location.href = `intent://${appUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
             } else if (isIOS) {
                 // 아이폰: 유니버설 링크(사파리로 이동)
-                location.href = appUrl;
+                window.top.location.href = appUrl;
             } else {
-                location.href = appUrl;
+                window.top.location.href = appUrl;
             }
         }
 
@@ -139,9 +147,9 @@
             document.getElementById('whaleView').classList.remove('hidden');
         }
 
-        // 앱으로 바로 이동
+        // 앱으로 바로 이동 (수정됨: window.top 추가)
         function goToApp() {
-            location.href = appUrl;
+            window.top.location.href = appUrl;
         }
 
         // 링크 복사 기능
