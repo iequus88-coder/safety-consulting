@@ -9,7 +9,7 @@
         body { font-family: 'Malgun Gothic', sans-serif; background-color: #f3f4f6; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body class="flex items-center justify-center min-h-[100dvh] p-4">
 
     <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center" id="mainCard">
         
@@ -154,7 +154,7 @@
         // 크롬 가이드용 링크 복사 기능
         function copyLinkAndAlert() {
             navigator.clipboard.writeText(appUrl).then(() => {
-                alert("복사 완료! 현재 주소창에 지우고 붙여넣기(Ctrl+V) 하신 후 엔터를 쳐주세요.");
+                alert("** 현재 주소창의 기존주소를 지우고, 새로 복사된 앱주소를 붙여넣기 (Ctrl + V) 해주세요 **");
             });
         }
     </script>
