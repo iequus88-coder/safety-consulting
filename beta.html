@@ -4,14 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>안전 컨설팅 AI 시작하기</title>
-    
-    <!-- [추가된 핵심 코드 1] 설문지 프레임 창에 갇혔을 때 전체 화면으로 즉시 탈출 -->
-    <script>
-        if (window.top !== window.self) {
-            window.top.location.href = window.location.href;
-        }
-    </script>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; background-color: #f3f4f6; }
@@ -34,9 +26,11 @@
                 <h2 class="text-xl font-bold text-blue-800 mb-2">모바일 환경 접속 확인</h2>
                 <p class="text-gray-700 font-medium">아래 버튼을 누르면 AI 앱으로 즉시 이동해요.</p>
             </div>
+            
             <button onclick="startMobileApp()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg text-lg mb-4 transition-all">
                 🚀 앱 시작하기
             </button>
+            
             <p class="text-sm text-gray-500">앱이 열리지 않으면 아래 링크를 복사해주세요.</p>
             <button onclick="copyLink()" class="mt-2 text-blue-500 underline text-sm">링크 복사하기</button>
         </div>
@@ -78,9 +72,10 @@
                 </p>
             </div>
             
-            <button onclick="goToApp()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg text-lg mb-4 transition-all">
+            <!-- [핵심 수정 부분] 버튼(button) 대신 네이티브 링크(a)를 사용하여 새 창(_blank)으로 강제 탈출 -->
+            <a href="https://safety-consulting-five.vercel.app/" target="_blank" rel="noopener noreferrer" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg text-lg mb-4 transition-all text-center no-underline cursor-pointer">
                 ⌨️ 문자입력 모드로 계속하기
-            </button>
+            </a>
             
             <button onclick="location.reload()" class="w-full bg-white border-2 border-gray-300 text-gray-700 font-bold py-3 px-6 rounded-xl text-md transition-all">
                 🔙 뒤로 가기 (크롬으로 변경할래요)
@@ -122,16 +117,16 @@
             }
         };
 
-        // 모바일 앱 시작 분기 로직 (수정됨: window.top 추가)
+        // 모바일 앱 시작 분기 로직
         function startMobileApp() {
             if (isAndroid) {
                 // 안드로이드: 크롬 강제 실행 인텐트
-                window.top.location.href = `intent://${appUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
+                location.href = `intent://${appUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
             } else if (isIOS) {
                 // 아이폰: 유니버설 링크(사파리로 이동)
-                window.top.location.href = appUrl;
+                location.href = appUrl;
             } else {
-                window.top.location.href = appUrl;
+                location.href = appUrl;
             }
         }
 
@@ -145,11 +140,6 @@
         function showWhaleGuide() {
             document.getElementById('pcView').classList.add('hidden');
             document.getElementById('whaleView').classList.remove('hidden');
-        }
-
-        // 앱으로 바로 이동 (수정됨: window.top 추가)
-        function goToApp() {
-            window.top.location.href = appUrl;
         }
 
         // 링크 복사 기능
