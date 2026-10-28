@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // 동진 님의 Apps Script (안전관제탑 14-2) 웹앱 URL을 환경변수에서 가져오거나 직접 입력
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || process.env.NEXT_PUBLIC_APPS_SCRIPT_URL || '';
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || process.env.NEXT_PUBLIC_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbx7mW5CWyxqpmvM2NLTMYjXLQs6PFpoYCb1qHUq72_cG9iEjEGmxSIUHk3dg3WeEX9KBw/exec';
 
 export async function POST(req: NextRequest) {
   try {
