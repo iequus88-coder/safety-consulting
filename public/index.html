@@ -3,210 +3,399 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Safety Consulting 앱 관문 - 안전 관제탑 (14-7)</title>
+  <title>안전 관제탑 - CEO의 법적 생존을 통제하는 안전 관제탑</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     body {
-      font-family: 'Noto Sans KR', sans-serif;
-      background-color: #0f172a;
-      color: #f8fafc;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
     }
-    select option {
-      background-color: #1e293b;
-      color: #f8fafc;
+    /* 구독모델 운영안 바이블 테이블 스타일 */
+    .bible-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      line-height: 1.35;
+    }
+    .bible-table th, .bible-table td {
+      border: 1px solid #64748b;
+      padding: 6px 8px;
+    }
+    .section-banner {
+      background-color: #1b6d2e;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 15px;
+      text-align: center;
+      padding: 7px;
+      border: 1px solid #14532d;
+    }
+    .sub-header {
+      background-color: #8fd19e;
+      color: #0f172a;
+      font-weight: 700;
+      text-align: center;
+    }
+    /* 3-2 단계 진입 시 좌측 운영안 강조 효과 */
+    .highlight-bible {
+      box-shadow: 0 0 0 4px #2563eb, 0 10px 25px -5px rgba(37, 99, 235, 0.35);
+      transition: all 0.3s ease;
     }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen py-6 px-3 lg:px-8 flex items-center justify-center">
 
-  <div class="w-full max-w-lg bg-slate-800/90 border border-slate-700 rounded-2xl shadow-2xl p-6 md:p-8 backdrop-blur-md">
-    
-    <!-- 상단 배지 및 타이틀 -->
-    <div class="text-center mb-6">
-      <span class="inline-block bg-blue-600/30 border border-blue-400/40 text-blue-300 text-xs font-bold px-3 py-1 rounded-full mb-3">
-        CEO의 법적 생존을 통제하는 안전 관제탑
-      </span>
-      <h1 id="stage-title" class="text-2xl font-black text-white tracking-tight">
-        Safety Consulting 앱 관문 (1단계)
-      </h1>
-      <p class="text-slate-400 text-xs mt-1">
-        20년 경력 산업안전 전문가 AI 통합 컨설팅 시스템
-      </p>
-    </div>
+  <!-- 전체 컨테이너: 좌측 운영안(7) + 우측 3단계 관문(5) -->
+  <div class="max-w-[1440px] w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-    <!-- 단계 표시 바 -->
-    <div class="mb-6">
-      <div class="flex justify-between text-xs font-bold mb-2">
-        <span id="tab-step1" class="text-blue-400 cursor-pointer" onclick="goStep(1)">1. 이메일 확인</span>
-        <span id="tab-step2" class="text-slate-500 cursor-pointer" onclick="goStep(2)">2. 등급 및 기간 선택</span>
-        <span id="tab-step3" class="text-slate-500 cursor-pointer" onclick="goStep(3)">3. 라이선스 키 인증</span>
-      </div>
-      <div class="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
-        <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-300" style="width: 33%;"></div>
-      </div>
-    </div>
-
-    <!-- 알림 메시지 영역 -->
-    <div id="alert-box" class="hidden mb-5 p-3.5 rounded-lg text-xs font-medium leading-relaxed border"></div>
-
-    <!-- ==================== [1단계: 이메일 확인 및 설문 안내] ==================== -->
-    <div id="step-1" class="space-y-4">
-      <div class="bg-slate-900/80 border border-slate-700 rounded-lg p-3.5 text-xs text-slate-300 leading-relaxed">
-        💡 처음 오신 분은 먼저 아래 <b>[무료 트라이얼 신청 설문지 작성]</b>을 완료해 주세요. 작성 즉시 관리대장에 자동 등록되며 <b>고유 라이선스 키</b>가 발급됩니다.<br>
-        <span class="text-amber-400 font-bold">※ 관리자(마스터 키 보유자)는 바로 [3. 라이선스 키 인증] 탭을 눌러 입장하세요!</span>
-      </div>
-
-      <a href="https://docs.google.com/forms/d/e/1FAIpQLSf_YOUR_FORM_LINK/viewform" target="_blank" id="form-link-btn"
-         class="block w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-lg text-xs transition">
-        📝 1분 무료 트라이얼 신청 설문지 작성하기 (새 창)
-      </a>
-
-      <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1.5">신청 이메일 주소 입력</label>
-        <input type="email" id="email-step1" placeholder="예: iequus88@gmail.com"
-               class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
-      </div>
-
-      <div class="flex gap-2 pt-2">
-        <button onclick="checkEmailStep1()" id="btn-step1"
-                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg text-sm transition">
-          이메일 확인 및 다음 단계로 ➔
-        </button>
-      </div>
+    <!-- [좌측 영역] 바이블: 구독모델 운영안 (7컬럼 차지) -->
+    <div id="bible-panel" class="lg:col-span-7 bg-white rounded-xl shadow-lg border border-slate-300 overflow-hidden p-3 sm:p-5">
       
-      <div class="text-center pt-1">
-        <button onclick="goStep(3)" class="text-xs text-amber-400 hover:underline font-semibold">
-          🔑 이미 라이선스 키나 마스터 키가 있으신가요? (3단계 바로가기)
-        </button>
-      </div>
-    </div>
-
-    <!-- ==================== [2단계: 등급 선택 및 무통장 입금 안내] ==================== -->
-    <div id="step-2" class="hidden space-y-4">
-      <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1.5">신청자 이메일</label>
-        <input type="email" id="email-step2" readonly
-               class="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-slate-400" />
+      <!-- 최상단 파란색 타이틀 배너 -->
+      <div class="bg-[#0000ff] text-[#ffff00] font-black text-2xl sm:text-3xl text-center py-3 tracking-widest border border-slate-700">
+        구 독 모 델 &nbsp;&nbsp; 운 영 안
       </div>
 
-      <!-- 등급 및 구독 기간 (가격 병기!) -->
-      <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1.5">구독 등급 및 기간 선택 (부가세 별도)</label>
-        <select id="plan-select" onchange="updatePriceDisplay()"
-                class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
-          <option value="트라이얼|3일|0">🎁 무료 트라이얼 (3일 체험 / 10회 질문) - 0원 (무료)</option>
-          <option value="스탠다드|1개월|29000">🥉 스탠다드 - 1개월 (50회 질문) : 29,000원</option>
-          <option value="스탠다드|6개월|150000">🥉 스탠다드 - 6개월 (300회 질문) : 150,000원 (할인)</option>
-          <option value="스탠다드|12개월|280000">🥉 스탠다드 - 12개월 (600회 질문) : 280,000원 (대폭 할인)</option>
-          <option value="프로|1개월|59000">🥈 프로(PRO) - 1개월 (200회 질문) : 59,000원</option>
-          <option value="프로|6개월|300000">🥈 프로(PRO) - 6개월 (1,200회 질문) : 300,000원 (할인)</option>
-          <option value="프로|12개월|560000">🥈 프로(PRO) - 12개월 (2,400회 질문) : 560,000원 (대폭 할인)</option>
-          <option value="울트라|1개월|99000">🥇 울트라(ULTRA) - 1개월 (1,000회 질문) : 99,000원</option>
-          <option value="울트라|6개월|500000">🥇 울트라(ULTRA) - 6개월 (6,000회 질문) : 500,000원 (할인)</option>
-          <option value="울트라|12개월|950000">🥇 울트라(ULTRA) - 12개월 (12,000회 질문) : 950,000원 (VIP 할인)</option>
-        </select>
+      <!-- 서브 슬로건 영역 -->
+      <div class="bg-[#e8f0fe] text-center py-2.5 px-3 border-x border-b border-slate-400">
+        <p class="text-[#0000ff] font-extrabold text-sm sm:text-base">
+          <span class="text-[#1b6d2e]">SAFETY CONSULTING 앱</span>은 검색용이 아닙니다.
+        </p>
+        <p class="text-[#0000ff] font-extrabold text-sm sm:text-base mt-0.5">
+          요리가 완료되어 바로 드실 수 있는 <span class="text-[#1b6d2e]">&lt;밀 키트&gt;</span> 제공용입니다
+        </p>
       </div>
 
-      <!-- 무통장 입금 계좌번호 안내 박스 (신규 추가!) -->
-      <div id="bank-info-box" class="bg-amber-950/40 border border-amber-500/40 rounded-lg p-3.5 text-xs space-y-1.5">
-        <div class="font-bold text-amber-300 flex items-center justify-between">
-          <span>🏦 무통장 입금 계좌 안내</span>
-          <span id="selected-price-badge" class="bg-amber-500 text-slate-950 px-2 py-0.5 rounded font-black">결제금액: 0원</span>
+      <div class="text-right text-xs text-slate-600 font-semibold my-1">2026 10 28</div>
+
+      <!-- 1. 핵심 소구점(USP) 및 맞춤 포지셔닝 -->
+      <div class="section-banner">1. 핵심 소구점(USP) 및 맞춤 포지셔닝</div>
+      <table class="bible-table mb-3">
+        <thead>
+          <tr class="sub-header">
+            <th class="w-[18%]">타겟 구분</th>
+            <th class="w-[27%]">핵심 해결 가치</th>
+            <th class="w-[55%]">제공 솔루션 및 특화</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="bg-[#fff2cc]">
+            <td class="font-bold text-center">중소기업 대표<br><span class="text-[11px] font-normal">(결재권자)</span></td>
+            <td class="font-semibold text-center">형사처벌 및 과태료 리스크 원천 방어</td>
+            <td>중대재해처벌법 대비 맞춤형 면책 논리 구축 및 컨설팅 제공. 복잡하고 어려운 안전법규 때문에 망설임없이, 워크포인트 숨김없이 솔직하게 대화형으로 SOLUTION을 찾고자하는 관리자에 적합</td>
+          </tr>
+          <tr class="bg-white">
+            <td class="font-bold text-center">현장 안전·보건<br>관리자(실무자)</td>
+            <td class="font-semibold text-center">업무 시간 70% 단축 및 산안비 100% 정산</td>
+            <td>복잡하고 얽혀있는 건진법 위험물관리법규 등 주변법규들을 모두 고려한 안전관리 최적안 도출 및 해결안 제시</td>
+          </tr>
+          <tr class="bg-[#fff2cc]">
+            <td class="font-bold text-center">산업안전지도사/기사<br>수험생(개인)</td>
+            <td class="font-semibold text-center">실무와 수험을 동시에 끝내는 200% 학습 효율</td>
+            <td>2 / 3차 논술 시험 대비용. 이해하기 쉬워서 오래기억되는 핵심내용과 이해를돕는 이미지 첨부답안 제공</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 2. 서비스 패키지 및 가격 (정식 유료 구독 메인 라인업) -->
+      <div class="section-banner">2. 서비스 패키지 및 가격 <span class="text-xs font-normal">(정식 유료 구독 메인 라인업)</span></div>
+      <table class="bible-table mb-3 text-center">
+        <thead>
+          <tr>
+            <th class="sub-header w-[13%]">등급</th>
+            <th class="sub-header w-[23%]">핵심 고객</th>
+            <th class="sub-header w-[12%]">사용자 수<br><span class="text-[11px]">(팀원 한도)</span></th>
+            <th class="bg-[#8ea9db] font-bold w-[11%]">월간 Q&amp;A 한도</th>
+            <th class="bg-[#8ea9db] font-bold w-[11%]">6개월 Q&amp;A 한도</th>
+            <th class="bg-[#8ea9db] font-bold w-[11%]">연간 Q&amp;A 한도</th>
+            <th class="sub-header w-[19%]">구독료 <span class="text-[11px]">( 1개월 / 6개월 / 1년 )</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="bg-white">
+            <td class="font-extrabold">STANDARD</td>
+            <td>수험생 또는 단일 현장 실무자</td>
+            <td>1인</td>
+            <td class="bg-[#8ea9db] font-bold">60회 / 월</td>
+            <td class="bg-[#8ea9db] font-bold">400회 / 6개월</td>
+            <td class="bg-[#8ea9db] font-bold">900회 / 년</td>
+            <td class="text-left text-[11.5px] font-semibold">월 30,000원 / 6개월 150,000원 / 1년 200,000원</td>
+          </tr>
+          <tr class="bg-[#fff2cc]">
+            <td class="font-extrabold">PRO</td>
+            <td>중소기업 ( 건설/제조 ) 안전관리팀</td>
+            <td>2 ~ 10인</td>
+            <td class="font-bold">300회 / 월</td>
+            <td class="font-bold">2,000회 / 6개월</td>
+            <td class="font-bold">4,400회 / 년</td>
+            <td class="text-left text-[11.5px] font-semibold">월 100,000원 / 6개월 500,000원 / 1년 800,000원</td>
+          </tr>
+          <tr class="bg-white">
+            <td class="font-extrabold">ULTRA</td>
+            <td>CEO 및 전사 안전관리실</td>
+            <td>11 ~ 30인</td>
+            <td class="bg-[#8ea9db] font-bold">2,000회 / 월</td>
+            <td class="bg-[#8ea9db] font-bold">15,000회 / 6개월</td>
+            <td class="bg-[#8ea9db] font-bold">40,000회 / 년</td>
+            <td class="text-left text-[11.5px] font-semibold">월 500,000원 / 6개월 2,000,000원 / 1년 4,000,000원</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 3. [별도 특별 배려 코너] 사전 테스트 -->
+      <div class="section-banner">
+        3. [별도 특별 배려 코너] 정식 결제 전, 성능을 직접 검증해 보고 싶은 고객을 위한 <span class="text-[#ffff00]">사전 테스트</span>
+      </div>
+      <div class="bg-white text-[11.5px] font-bold text-slate-800 py-1 px-2 border-x border-slate-500">
+        ※ 인입 고객은 정식 결제(STANDARD / PRO / ULTRA)를 기본으로 안내하되, 정식 결제 전 사전 테스트를 원하는 고객을 위해 아래 특별 체험 등급을 별도 제공함
+      </div>
+      <table class="bible-table mb-3 text-center">
+        <thead>
+          <tr class="sub-header">
+            <th class="w-[13%]">특별 등급</th>
+            <th class="w-[23%]">핵심 타겟</th>
+            <th class="w-[12%]">사용자 수</th>
+            <th class="w-[15%]">체험 기간 및 Q&amp;A 한도</th>
+            <th class="w-[9%]">-</th>
+            <th class="w-[9%]">-</th>
+            <th class="w-[19%]">가격</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="bg-white">
+            <td class="font-extrabold">TRIAL</td>
+            <td>무료 체험 (사전 검증 희망 고객)</td>
+            <td class="text-red-600 font-bold">2인</td>
+            <td class="text-red-600 font-bold">3일간 10회</td>
+            <td>-</td>
+            <td>-</td>
+            <td class="font-bold">무료 (0원)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 하단 무통장 입금 계좌 및 안내 -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-2 pt-1">
+        <div class="flex border border-slate-700 text-xs">
+          <div class="bg-slate-100 font-bold px-3 py-2 border-r border-slate-700 flex items-center">무통장 입금 계좌</div>
+          <div class="px-3 py-1.5 font-extrabold text-slate-900 bg-white">
+            하나은행 201-890629-15207<br>
+            <span class="font-semibold text-slate-700">(예금주: 권일주)</span>
+          </div>
         </div>
-        <p class="text-slate-200 font-semibold">
-          • 입금 계좌: <span class="text-white font-bold underline"> 하나은행 201-890 629-15 207 </span> (예금주: 권일주 / 안전관제탑)
-        </p>
-        <p class="text-slate-400 text-[11px]">
-          ※ 유료 등급 선택 시 위 계좌로 입금 후 아래에 입금자명을 적어주시면 관리자 확인 즉시 승인됩니다.
-        </p>
-      </div>
-
-      <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1.5">입금자명 (무료 트라이얼은 본인 성명 입력)</label>
-        <input type="text" id="depositor-name" placeholder="예: 홍길동 (또는 회사명)"
-               class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
-      </div>
-
-      <div class="flex gap-2 pt-2">
-        <button onclick="goStep(1)" class="w-1/3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3 rounded-lg text-xs transition">
-          이전 단계
-        </button>
-        <button onclick="submitStep2()" id="btn-step2"
-                class="w-2/3 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg text-sm transition">
-          등급 신청 및 라이선스 키 확인 ➔
-        </button>
+        <div class="text-[11.5px] font-bold text-slate-800 space-y-0.5">
+          <p>※ <span class="text-[#0000ff]">구독료 입금 확인</span> 후 앱 관제탑에서 <span class="text-[#0000ff]">라이선스 키</span>를 즉시 승인 발급해드립니다</p>
+          <p>※ 앱 구독료는 100% 전액 <span class="text-[#1b6d2e] underline">산업안전관리비</span>로 사용 가능합니다</p>
+        </div>
       </div>
     </div>
 
-    <!-- ==================== [3단계: 라이선스 키 / 마스터 키 인증] ==================== -->
-    <div id="step-3" class="hidden space-y-4">
-      <div class="bg-slate-900/90 border border-slate-700 rounded-lg p-3.5 text-xs text-slate-300 leading-relaxed">
-        💡 발급받은 <b>라이선스 키</b> 또는 관리자용 <b>마스터 키</b>를 입력해 주세요.<br>
-        <span class="text-slate-400">• 무통장 입금 계좌: 카카오뱅크 3333-XX-XXXXXXX (예금주: 정동진)</span>
+    <!-- [우측 영역] Safety Consulting 앱 관문 (3단계) (5컬럼 차지) -->
+    <div class="lg:col-span-5 bg-[#0f172a] text-white rounded-2xl shadow-2xl border border-slate-700 p-6 sm:p-7">
+      
+      <!-- 상단 배지 및 타이틀 -->
+      <div class="text-center mb-5">
+        <span class="inline-block bg-blue-900/60 text-sky-400 border border-sky-500/40 text-xs font-extrabold px-3.5 py-1 rounded-full mb-2">
+          CEO의 법적 생존을 통제하는 안전 관제탑
+        </span>
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+          Safety Consulting 앱 관문 (3단계)
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">20년 경력 산업안전 전문가 AI 맞춤형 컨설팅 시스템</p>
       </div>
 
-      <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1.5">신청 이메일 확인 (마스터 키 입력 시 생략 가능)</label>
-        <input type="email" id="email-step3" placeholder="예: iequus88@gmail.com"
-               class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
-      </div>
-
-      <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1.5">라이선스 키 (License Key) 또는 마스터 키 입력</label>
-        <input type="text" id="license-key-input" placeholder="예: SAFE-XXXX-XXXX 또는 마스터 키"
-               class="w-full bg-slate-900 border border-blue-500/60 rounded-lg px-3.5 py-2.5 text-sm font-mono text-amber-300 focus:outline-none focus:border-amber-400" />
-      </div>
-
-      <div class="flex gap-2 pt-2">
-        <button onclick="goStep(2)" class="w-1/3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3 rounded-lg text-xs transition">
-          등급 재선택
+      <!-- 3단계 탭 네비게이션 -->
+      <div class="grid grid-cols-3 text-center text-xs font-bold border-b border-slate-700 pb-3 mb-5">
+        <button onclick="goStep(1)" id="tab-1" class="text-sky-400 border-b-2 border-sky-400 pb-2 cursor-pointer">
+          3-1. 신청자 확인
         </button>
-        <button onclick="verifyStep3()" id="btn-step3"
-                class="w-2/3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg text-sm transition shadow-lg shadow-emerald-900/40">
-          인증 완료 및 Safety 앱 시작하기 🚀
+        <button onclick="goStep(2)" id="tab-2" class="text-slate-400 hover:text-slate-200 pb-2 cursor-pointer">
+          3-2. 등급·결제 신청
+        </button>
+        <button onclick="goStep(3)" id="tab-3" class="text-slate-400 hover:text-slate-200 pb-2 cursor-pointer">
+          3-3. 라이선스 키 인증
         </button>
       </div>
+
+      <!-- 알림 메시지 박스 -->
+      <div id="alert-box" class="hidden mb-4 p-3.5 rounded-xl text-xs font-semibold leading-relaxed border"></div>
+
+      <!-- ==================== [STEP 3-1: 신청자 확인] ==================== -->
+      <div id="step-1" class="space-y-4">
+        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 text-xs text-slate-300 leading-relaxed">
+          사전 설문(구글 폼)에서 신청하신 <strong>이메일 주소</strong>를 입력하시면 고객관리대장과 연동되어 다음 단계로 이동합니다.
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">신청자 이메일 주소</label>
+          <input type="email" id="input-email" placeholder="example@company.com"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-sky-400" />
+        </div>
+
+        <button id="btn-step1" onclick="handleStep1()"
+          class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition shadow-lg">
+          신청 내역 확인 및 3-2 단계로 이동
+        </button>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+          <span>이미 라이선스 키(또는 마스터 키)가 있으신가요?</span>
+          <button onclick="goStep(3)" class="text-sky-400 hover:underline font-bold">3-3. 키 인증 바로가기 →</button>
+        </div>
+      </div>
+
+      <!-- ==================== [STEP 3-2: 등급·결제 신청] ==================== -->
+      <div id="step-2" class="hidden space-y-4">
+        <div id="welcome-banner" class="bg-slate-800/90 border border-slate-700 rounded-xl p-3.5 text-xs text-slate-200 font-semibold">
+          반갑습니다! 왼쪽 <strong>&lt;구독모델 운영안&gt;</strong>을 참고하여 이용하실 등급과 기간을 선택해 주세요.
+        </div>
+
+        <!-- 구독 등급 선택 -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">구독 등급 선택</label>
+          <select id="select-tier" onchange="onTierChange()"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white text-sm font-semibold focus:outline-none focus:border-sky-400">
+            <option value="STANDARD">STANDARD (1인 실무자·수험생 - 월 60회)</option>
+            <option value="PRO" selected>PRO (중소기업 안전관리팀 2~10인 - 월 300회)</option>
+            <option value="ULTRA">ULTRA (CEO 및 전사 안전관리실 11~30인 - 월 2,000회)</option>
+            <option value="TRIAL">TRIAL (무료 사전 테스트 2인 - 3일간 10회)</option>
+          </select>
+        </div>
+
+        <!-- 구독 기간 선택 -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">구독 기간 선택</label>
+          <select id="select-period" onchange="updatePriceSummary()"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white text-sm font-semibold focus:outline-none focus:border-sky-400">
+          </select>
+        </div>
+
+        <!-- 선택 요금 및 한도 실시간 요약 -->
+        <div class="bg-slate-900 border border-sky-500/40 rounded-xl p-3.5 text-xs space-y-1">
+          <div class="flex justify-between text-slate-400">
+            <span>선택 등급 / 한도:</span>
+            <span id="summary-spec" class="font-bold text-sky-400">PRO (1개월) / 300회</span>
+          </div>
+          <div class="flex justify-between text-slate-300 text-sm font-extrabold pt-1 border-t border-slate-800">
+            <span>입금하실 구독료:</span>
+            <span id="summary-price" class="text-yellow-400">100,000원</span>
+          </div>
+        </div>
+
+        <!-- 무통장 입금 계좌 안내 박스 + 복사 버튼 -->
+        <div class="bg-blue-950/70 border border-blue-500/40 rounded-xl p-3.5 text-xs space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-extrabold text-sky-300">💳 무통장 입금 계좌 안내</span>
+            <button type="button" onclick="copyBankAccount()"
+              class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-200 font-bold text-[11px] transition">
+              계좌번호 복사
+            </button>
+          </div>
+          <p class="text-white font-bold">• 은행명: 하나은행 <span class="text-yellow-300">201-890629-15207</span> (예금주: 권일주)</p>
+          <p class="text-slate-300 text-[11px]">• 입금 확인 후 관제탑에서 즉시 라이선스 키를 승인·발급해 드립니다.</p>
+        </div>
+
+        <!-- 입금자명 입력 -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">입금자명 (사업장명 또는 성명)</label>
+          <input type="text" id="input-depositor" placeholder="예: 홍길동 또는 (주)안전건설"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-sky-400" />
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button type="button" onclick="goStep(1)"
+            class="w-1/3 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-sm transition">
+            이전
+          </button>
+          <button type="button" id="btn-step2" onclick="handleStep2()"
+            class="w-2/3 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition shadow-lg">
+            구독 신청 완료 및 키 입력으로 이동
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== [STEP 3-3: 라이선스 키 인증] ==================== -->
+      <div id="step-3" class="hidden space-y-4">
+        <div class="bg-blue-950/60 border border-blue-500/40 rounded-xl p-3.5 text-xs text-slate-200 leading-relaxed">
+          ℹ️ 관제탑 승인 후 전달받은 <strong>라이선스 키</strong>를 아래에 입력해 주세요.<br>
+          <span class="text-slate-400 text-[11px]">(관리자 마스터 키 입력 시 이메일 확인 없이 즉시 진입합니다.)</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">신청자 이메일 확인 (일반 고객용)</label>
+          <input type="email" id="verify-email" placeholder="example@company.com (마스터 키는 생략 가능)"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-sky-400" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">라이선스 키 (License Key)</label>
+          <input type="text" id="input-license" placeholder="SC-PRO-XXXX-XXXX"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-sky-500/60 text-yellow-300 font-mono font-bold text-sm focus:outline-none focus:border-sky-400" />
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button type="button" onclick="goStep(2)"
+            class="w-1/3 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-sm transition">
+            이전
+          </button>
+          <button type="button" id="btn-step3" onclick="handleStep3()"
+            class="w-2/3 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm transition shadow-lg">
+            인증 완료 및 Safety 앱 시작하기
+          </button>
+        </div>
+      </div>
+
     </div>
-
   </div>
 
   <script>
-    /**
-     * ========================================================================
-     * [중요] 아래 SCRIPT_URL에 구글 앱스 스크립트(GAS) 웹 앱 배포 URL을 넣으세요!
-     * ========================================================================
-     */
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7mW5CWyxqpmvM2NLTMYjXLQs6PFpoYCb1qHUq72_cG9iEjEGmxSIUHk3dg3WeEX9KBw/exec ";
-    
-    // 인증 성공 후 이동할 본체 페이지 (같은 폴더의 safety.html 또는 메인 앱 주소)
+    // =========================================================================
+    // [동진 님 필수 확인] 아래 SCRIPT_URL에 구글 앱스 스크립트 웹 앱 배포 URL을 넣으세요.
+    // =========================================================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7mW5CWyxqpmvM2NLTMYjXLQs6PFpoYCb1qHUq72_cG9iEjEGmxSIUHk3dg3WeEX9KBw/exec";
+
+    // 인증 완료 후 이동할 실제 컨설팅 앱 페이지 (동일 폴더 내 페이지 또는 외부 URL)
     const NEXT_APP_URL = "safety.html";
 
-    // 월 2회 자동 변경 마스터키 클라이언트 즉시 검증용 보조 함수
-    function isClientMasterKey(key) {
-      if (!key) return false;
-      const upper = key.trim().toUpperCase();
-      const day = new Date().getDate();
-      const dynamicCode = (day <= 15) ? '1515' : '3030';
-      const validList = [
-        'MASTER-DJ0826-CONTROL-9999',
-        'MASTER-DJ0826-CONTROL-1515',
-        'MASTER-DJ0826-CONTROL-3030',
-        `MASTER-DJ0826-CONTROL-${dynamicCode}`
-      ];
-      return validList.includes(upper);
-    }
+    // 바이블 <구독모델 운영안> 기준 데이터 (할인율 완전 삭제)
+    const PLAN_DATA = {
+      STANDARD: [
+        { period: '1개월', quota: 60, price: 30000 },
+        { period: '6개월', quota: 400, price: 150000 },
+        { period: '1년',   quota: 900, price: 200000 }
+      ],
+      PRO: [
+        { period: '1개월', quota: 300, price: 100000 },
+        { period: '6개월', quota: 2000, price: 500000 },
+        { period: '1년',   quota: 4400, price: 800000 }
+      ],
+      ULTRA: [
+        { period: '1개월', quota: 2000, price: 500000 },
+        { period: '6개월', quota: 15000, price: 2000000 },
+        { period: '1년',   quota: 40000, price: 4000000 }
+      ],
+      TRIAL: [
+        { period: '3일',   quota: 10, price: 0 }
+      ]
+    };
 
-    function showAlert(msg, type = 'error') {
+    // 마스터 키 목록 (9999 상시 + 1515 전반기 + 3030 후반기)
+    const MASTER_KEYS = [
+      'MASTER-DJ0826-CONTROL-9999',
+      'MASTER-DJ0826-CONTROL-1515',
+      'MASTER-DJ0826-CONTROL-3030'
+    ];
+
+    function showAlert(msg, type = 'info') {
       const box = document.getElementById('alert-box');
-      box.classList.remove('hidden', 'bg-red-950/60', 'border-red-500/50', 'text-red-200', 'bg-emerald-950/60', 'border-emerald-500/50', 'text-emerald-200', 'bg-blue-950/60', 'border-blue-500/50', 'text-blue-200');
-      
+      box.classList.remove('hidden', 'bg-red-950/80', 'border-red-500/50', 'text-red-200', 'bg-blue-950/80', 'border-blue-500/50', 'text-sky-200', 'bg-emerald-950/80', 'border-emerald-500/50', 'text-emerald-200');
       if (type === 'error') {
-        box.classList.add('bg-red-950/60', 'border-red-500/50', 'text-red-200');
+        box.classList.add('bg-red-950/80', 'border-red-500/50', 'text-red-200');
       } else if (type === 'success') {
-        box.classList.add('bg-emerald-950/60', 'border-emerald-500/50', 'text-emerald-200');
+        box.classList.add('bg-emerald-950/80', 'border-emerald-500/50', 'text-emerald-200');
       } else {
-        box.classList.add('bg-blue-950/60', 'border-blue-500/50', 'text-blue-200');
+        box.classList.add('bg-blue-950/80', 'border-blue-500/50', 'text-sky-200');
       }
       box.innerHTML = msg;
     }
@@ -217,163 +406,214 @@
 
     function goStep(step) {
       hideAlert();
-      document.getElementById('step-1').classList.add('hidden');
-      document.getElementById('step-2').classList.add('hidden');
-      document.getElementById('step-3').classList.add('hidden');
+      [1, 2, 3].forEach(s => {
+        document.getElementById('step-' + s).classList.toggle('hidden', s !== step);
+        const tab = document.getElementById('tab-' + s);
+        if (s === step) {
+          tab.className = 'text-sky-400 border-b-2 border-sky-400 pb-2 cursor-pointer';
+        } else {
+          tab.className = 'text-slate-400 hover:text-slate-200 pb-2 cursor-pointer';
+        }
+      });
 
-      document.getElementById(`step-${step}`).classList.remove('hidden');
-      document.getElementById('stage-title').innerText = `Safety Consulting 앱 관문 (${step}단계)`;
-
-      const progress = document.getElementById('progress-bar');
-      const t1 = document.getElementById('tab-step1');
-      const t2 = document.getElementById('tab-step2');
-      const t3 = document.getElementById('tab-step3');
-
-      t1.className = step >= 1 ? 'text-blue-400 cursor-pointer font-bold' : 'text-slate-500 cursor-pointer';
-      t2.className = step >= 2 ? 'text-blue-400 cursor-pointer font-bold' : 'text-slate-500 cursor-pointer';
-      t3.className = step >= 3 ? 'text-blue-400 cursor-pointer font-bold' : 'text-slate-500 cursor-pointer';
-
-      progress.style.width = `${step * 33.33}%`;
-
-      // 이메일 값 자동 연동
-      const e1 = document.getElementById('email-step1').value.trim();
-      if (e1) {
-        document.getElementById('email-step2').value = e1;
-        document.getElementById('email-step3').value = e1;
+      // 3-2 단계일 때 왼쪽 구독모델 운영안 표에 파란색 강조 테두리 표시
+      const biblePanel = document.getElementById('bible-panel');
+      if (step === 2) {
+        biblePanel.classList.add('highlight-bible');
+      } else {
+        biblePanel.classList.remove('highlight-bible');
       }
     }
 
-    function updatePriceDisplay() {
-      const val = document.getElementById('plan-select').value;
-      const parts = val.split('|');
-      const price = Number(parts[2] || 0);
-      document.getElementById('selected-price-badge').innerText = `결제금액: ${price.toLocaleString()}원`;
+    function onTierChange() {
+      const tier = document.getElementById('select-tier').value;
+      const periodSelect = document.getElementById('select-period');
+      const list = PLAN_DATA[tier] || PLAN_DATA.PRO;
+
+      periodSelect.innerHTML = '';
+      list.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.period;
+        const priceText = item.price === 0 ? '무료 (0원)' : item.price.toLocaleString() + '원';
+        opt.textContent = `${item.period} (총 ${item.quota.toLocaleString()}회 / ${priceText})`;
+        periodSelect.appendChild(opt);
+      });
+      updatePriceSummary();
     }
 
-    // [1단계 실행] 이메일 조회 및 설문 데이터 동기화
-    async function checkEmailStep1() {
-      const email = document.getElementById('email-step1').value.trim();
+    function updatePriceSummary() {
+      const tier = document.getElementById('select-tier').value;
+      const period = document.getElementById('select-period').value;
+      const list = PLAN_DATA[tier] || PLAN_DATA.PRO;
+      const found = list.find(i => i.period === period) || list[0];
+
+      document.getElementById('summary-spec').textContent = `${tier} (${found.period}) / ${found.quota.toLocaleString()}회`;
+      document.getElementById('summary-price').textContent = found.price === 0 ? '무료 (0원)' : found.price.toLocaleString() + '원';
+
+      const depInput = document.getElementById('input-depositor');
+      if (tier === 'TRIAL' && !depInput.value) {
+        depInput.value = '무료체험신청';
+      }
+    }
+
+    function copyBankAccount() {
+      const account = '201-890629-15207';
+      navigator.clipboard.writeText(account).then(() => {
+        showAlert('✅ 하나은행 계좌번호(201-890629-15207)가 복사되었습니다.', 'success');
+      }).catch(() => {
+        showAlert('계좌번호: 201-890629-15207 (예금주: 권일주)', 'info');
+      });
+    }
+
+    async function callBackend(params) {
+      if (!SCRIPT_URL || SCRIPT_URL.indexOf('http') !== 0) {
+        throw new Error('SCRIPT_URL에 구글 앱스 스크립트 웹 앱 주소를 먼저 입력해 주세요.');
+      }
+      const url = new URL(SCRIPT_URL);
+      Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+      const res = await fetch(url.toString(), { method: 'GET', redirect: 'follow' });
+      return await res.json();
+    }
+
+    // [3-1 단계 실행]
+    async function handleStep1() {
+      const email = document.getElementById('input-email').value.trim();
       if (!email) {
-        showAlert('⚠️ 이메일 주소를 입력해 주세요.', 'error');
+        showAlert('⚠️ 신청하신 이메일 주소를 입력해 주세요.', 'error');
         return;
       }
+      localStorage.setItem('safety_user_email', email);
+      document.getElementById('verify-email').value = email;
 
       const btn = document.getElementById('btn-step1');
       btn.disabled = true;
-      btn.innerText = '관리대장 동기화 및 확인 중...';
-      hideAlert();
+      btn.textContent = '신청 내역 조회 중...';
 
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=checkTrial&email=${encodeURIComponent(email)}`);
-        const data = await res.json();
-
-        if (data.result === 'success') {
-          document.getElementById('email-step2').value = email;
-          document.getElementById('email-step3').value = email;
-          if (data.licenseKey) {
-            document.getElementById('license-key-input').value = data.licenseKey;
-          }
+        const res = await callBackend({ action: 'checkApplicant', email: email });
+        if (res.success && res.found) {
+          document.getElementById('welcome-banner').innerHTML =
+            `반갑습니다, <strong>${res.name}</strong> 님 (${res.company})!<br>이용하실 구독 등급과 기간을 선택해 주세요.`;
+          if (res.depositor) document.getElementById('input-depositor').value = res.depositor;
           goStep(2);
-          showAlert(`✅ <b>${data.name || email}</b>님 확인 완료! 원하시는 구독 등급을 선택해 주세요.<br>(발급된 키: <b>${data.licenseKey}</b>)`, 'success');
         } else {
-          showAlert(`❌ ${data.message}`, 'error');
+          showAlert('⚠️ ' + (res.message || '신청 내역을 찾을 수 없습니다.'), 'error');
         }
       } catch (err) {
-        showAlert('⚠️ 서버 통신 오류가 발생했습니다. SCRIPT_URL이 정확한지 확인해 주세요.', 'error');
+        showAlert('⚠️ 통신 오류: ' + err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.innerText = '이메일 확인 및 다음 단계로 ➔';
+        btn.textContent = '신청 내역 확인 및 3-2 단계로 이동';
       }
     }
 
-    // [2단계 실행] 등급 및 기간 업데이트
-    async function submitStep2() {
-      const email = document.getElementById('email-step2').value.trim();
-      const planVal = document.getElementById('plan-select').value.split('|');
-      const grade = planVal[0];
-      const period = planVal[1];
-      const depositor = document.getElementById('depositor-name').value.trim();
+    // [3-2 단계 실행]
+    async function handleStep2() {
+      const email = document.getElementById('input-email').value.trim() || localStorage.getItem('safety_user_email') || '';
+      const tier = document.getElementById('select-tier').value;
+      const period = document.getElementById('select-period').value;
+      const depositor = document.getElementById('input-depositor').value.trim();
 
-      const btn = document.getElementById('btn-step2');
-      btn.disabled = true;
-      btn.innerText = '등급 반영 및 라이선스 키 발급 중...';
-      hideAlert();
-
-      try {
-        const url = `${SCRIPT_URL}?action=updateSubscription&email=${encodeURIComponent(email)}&grade=${encodeURIComponent(grade)}&period=${encodeURIComponent(period)}&depositor=${encodeURIComponent(depositor)}`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.result === 'success') {
-          if (data.licenseKey) {
-            document.getElementById('license-key-input').value = data.licenseKey;
-          }
-          goStep(3);
-          showAlert(`🎉 신청 완료! 발급된 라이선스 키(<b>${data.licenseKey}</b>)가 자동 입력되었습니다. 아래 초록색 버튼을 눌러 시작하세요!`, 'success');
-        } else {
-          showAlert(`❌ ${data.message}`, 'error');
-        }
-      } catch (err) {
-        showAlert('⚠️ 서버 통신 중 오류가 발생했습니다.', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '등급 신청 및 라이선스 키 확인 ➔';
-      }
-    }
-
-    // [3단계 실행] 라이선스 키 및 마스터키 최종 인증
-    async function verifyStep3() {
-      const email = document.getElementById('email-step3').value.trim();
-      const key = document.getElementById('license-key-input').value.trim();
-
-      if (!key) {
-        showAlert('⚠️ 라이선스 키 또는 마스터 키를 입력해 주세요.', 'error');
+      if (tier !== 'TRIAL' && !depositor) {
+        showAlert('⚠️ 무통장 입금 확인을 위해 입금자명(사업장명 또는 성명)을 입력해 주세요.', 'error');
         return;
       }
 
-      // [초특급 안전장치] 마스터 키가 맞으면 서버 설정 실수가 있어도 무조건 즉시 통과!
-      if (isClientMasterKey(key)) {
-        localStorage.setItem('safety_auth_passed', 'true');
-        localStorage.setItem('safety_user_email', email || 'iequus88@gmail.com');
-        localStorage.setItem('safety_user_grade', '울트라(MASTER)');
-        localStorage.setItem('safety_license_key', key.toUpperCase());
-        showAlert('👑 <b>마스터 키 인증 완료!</b> 최고 관리자 권한으로 안전 관제탑에 즉시 진입합니다...', 'success');
-        setTimeout(() => {
-          window.location.href = NEXT_APP_URL;
-        }, 800);
+      const btn = document.getElementById('btn-step2');
+      btn.disabled = true;
+      btn.textContent = '구독 신청 접수 중...';
+
+      try {
+        const res = await callBackend({
+          action: 'submitSubscription',
+          email: email,
+          tier: tier,
+          period: period,
+          depositor: depositor || '무료체험신청'
+        });
+
+        if (res.success) {
+          goStep(3);
+          showAlert('ℹ️ 구독 및 입금 확인 요청이 접수되었습니다. 관제탑 승인 후 전달받은 라이선스 키를 아래에 입력해 주세요.', 'info');
+        } else {
+          showAlert('⚠️ ' + (res.message || '구독 신청 저장에 실패했습니다.'), 'error');
+        }
+      } catch (err) {
+        showAlert('⚠️ 통신 오류: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '구독 신청 완료 및 키 입력으로 이동';
+      }
+    }
+
+    // [3-3 단계 실행]
+    async function handleStep3() {
+      const email = document.getElementById('verify-email').value.trim() || localStorage.getItem('safety_user_email') || '';
+      const rawKey = document.getElementById('input-license').value.trim().toUpperCase();
+
+      if (!rawKey) {
+        showAlert('⚠️ 라이선스 키를 입력해 주세요.', 'error');
+        return;
+      }
+
+      // 1순위: 동진 님 마스터 키 클라이언트 즉시 프리패스 (백엔드 통신 지연 없이 즉시 통과)
+      if (MASTER_KEYS.includes(rawKey) || rawKey.startsWith('MASTER-DJ0826-CONTROL-')) {
+        localStorage.setItem('safety_auth_user', JSON.stringify({
+          email: email || 'iequus88@gmail.com',
+          name: '정동진 실장님 (MASTER)',
+          tier: 'MASTER',
+          licenseKey: rawKey,
+          remainingQuota: 999999,
+          isMaster: true
+        }));
+        showAlert('✅ 마스터 키 인증 완료! 안전 관제탑으로 즉시 진입합니다.', 'success');
+        setTimeout(() => { window.location.href = NEXT_APP_URL; }, 700);
         return;
       }
 
       const btn = document.getElementById('btn-step3');
       btn.disabled = true;
-      btn.innerText = '라이선스 키 검증 중...';
-      hideAlert();
+      btn.textContent = '라이선스 키 검증 중...';
 
       try {
-        const url = `${SCRIPT_URL}?action=verifyKey&email=${encodeURIComponent(email)}&licenseKey=${encodeURIComponent(key)}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const res = await callBackend({
+          action: 'verifyLicense',
+          email: email,
+          licenseKey: rawKey
+        });
 
-        if (data.result === 'success' || data.valid === true) {
-          localStorage.setItem('safety_auth_passed', 'true');
-          localStorage.setItem('safety_user_email', email);
-          localStorage.setItem('safety_user_grade', data.grade || '트라이얼');
-          localStorage.setItem('safety_license_key', key);
-
-          showAlert(`✅ <b>인증 성공!</b> (${data.grade}) 안전 관제탑 메인 화면으로 이동합니다...`, 'success');
-          setTimeout(() => {
-            window.location.href = NEXT_APP_URL;
-          }, 1000);
+        if (res.success) {
+          localStorage.setItem('safety_auth_user', JSON.stringify({
+            email: res.email || email,
+            name: res.name,
+            company: res.company,
+            tier: res.tier,
+            licenseKey: rawKey,
+            remainingQuota: res.remainingQuota,
+            isMaster: false
+          }));
+          showAlert('✅ ' + res.message, 'success');
+          setTimeout(() => { window.location.href = NEXT_APP_URL; }, 700);
         } else {
-          showAlert(`❌ ${data.message}`, 'error');
+          showAlert('⚠️ ' + (res.message || '라이선스 키 인증에 실패했습니다.'), 'error');
         }
       } catch (err) {
-        showAlert('⚠️ 서버 연결에 실패했습니다. 마스터 키를 사용 중이시라면 오타가 없는지 확인해 주세요.', 'error');
+        showAlert('⚠️ 통신 오류: ' + err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.innerText = '인증 완료 및 Safety 앱 시작하기 🚀';
+        btn.textContent = '인증 완료 및 Safety 앱 시작하기';
       }
     }
+
+    // 초기 실행 시 드롭다운 세팅 및 저장된 이메일 복원
+    window.addEventListener('DOMContentLoaded', () => {
+      onTierChange();
+      const savedEmail = localStorage.getItem('safety_user_email');
+      if (savedEmail) {
+        document.getElementById('input-email').value = savedEmail;
+        document.getElementById('verify-email').value = savedEmail;
+      }
+    });
   </script>
 </body>
 </html>
