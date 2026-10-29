@@ -81,7 +81,7 @@ export default function GateControlPage() {
     setErrorMsg('');
     setInfoMsg('');
     if (!email.trim()) {
-      setErrorMsg('구글 설문지(1단계)에서 입력하신 이메일 주소를 입력해 주세요.');
+      setErrorMsg('구글 설문지(1단계)에서 입력하신 이메일 주소를 다시 입력해 주세요.');
       return;
     }
 
