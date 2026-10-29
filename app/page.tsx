@@ -2,23 +2,80 @@
 
 import React, { useState } from 'react';
 
+// 바이블 구독모델 운영안 V1.2 완벽 반영 데이터 테이블
+const BIBLE_PLANS: Record<string, {
+  label: string;
+  target: string;
+  users: string;
+  periods: Record<string, { quota: number; price: number; display: string }>;
+}> = {
+  STANDARD: {
+    label: 'STANDARD (수험생 또는 단일 현장 실무자 - 1인)',
+    target: '수험생 또는 단일 현장 실무자',
+    users: '1인',
+    periods: {
+      '1년': { quota: 900, price: 200000, display: '1년 (연간 900회 제공 / 200,000원)' },
+      '6개월': { quota: 400, price: 150000, display: '6개월 (6개월 400회 제공 / 150,000원)' },
+      '1개월': { quota: 60, price: 30000, display: '1개월 (월간 60회 제공 / 30,000원)' },
+    },
+  },
+  PRO: {
+    label: 'PRO (중소기업 건설/제조 안전관리팀 - 2~10인)',
+    target: '중소기업 (건설/제조) 안전관리팀',
+    users: '2 ~ 10인',
+    periods: {
+      '1년': { quota: 4400, price: 800000, display: '1년 (연간 4,400회 제공 / 800,000원)' },
+      '6개월': { quota: 2000, price: 500000, display: '6개월 (6개월 2,000회 제공 / 500,000원)' },
+      '1개월': { quota: 300, price: 100000, display: '1개월 (월간 300회 제공 / 100,000원)' },
+    },
+  },
+  ULTRA: {
+    label: 'ULTRA (CEO 및 전사 안전관리실 - 11~30인)',
+    target: 'CEO 및 전사 안전관리실',
+    users: '11 ~ 30인',
+    periods: {
+      '1년': { quota: 40000, price: 4000000, display: '1년 (연간 40,000회 제공 / 4,000,000원)' },
+      '6개월': { quota: 15000, price: 2000000, display: '6개월 (6개월 15,000회 제공 / 2,000,000원)' },
+      '1개월': { quota: 2000, price: 500000, display: '1개월 (월간 2,000회 제공 / 500,000원)' },
+    },
+  },
+  TRIAL: {
+    label: 'TRIAL (무료 체험 · 사전 검증 희망 고객 - 2인 / 3일간 10회)',
+    target: '무료 체험 (사전 검증 희망 고객)',
+    users: '2인',
+    periods: {
+      '3일': { quota: 10, price: 0, display: '3일간 10회 질문 제공 / 무료 (0원)' },
+    },
+  },
+};
+
 export default function GateControlPage() {
-  // 현재 진행 단계: '3-1' (이메일조회) | '3-2' (구독/결제신청) | '3-3' (라이선스키인증)
   const [step, setStep] = useState<'3-1' | '3-2' | '3-3'>('3-1');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
 
-  // 사용자 입력 및 시트 연동 데이터
+  // 사용자 입력 및 시트 연동 상태 (기본값: 무조건 STANDARD & 1년 고정!)
   const [email, setEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [selectedGrade, setSelectedGrade] = useState('TRIAL');
-  const [period, setPeriod] = useState('1개월');
+  const [selectedGrade, setSelectedGrade] = useState<'STANDARD' | 'PRO' | 'ULTRA' | 'TRIAL'>('STANDARD');
+  const [period, setPeriod] = useState<'1년' | '6개월' | '1개월'>('1년');
   const [depositor, setDepositor] = useState('');
   const [licenseKey, setLicenseKey] = useState('');
 
-  // [3-1단계] 1단계 구글 폼 신청자 이메일 확인
+  // 보안 처리: 계좌정보는 백엔드(Apps Script)에서 인증된 사용자에게만 내려주거나 환경변수로 호출
+  const [bankInfo, setBankInfo] = useState(
+    process.env.NEXT_PUBLIC_BANK_ACCOUNT || '하나은행 (입금 계좌는 신청자 확인 시 표시됩니다)'
+  );
+
+  const currentPlan = BIBLE_PLANS[selectedGrade];
+  const currentPeriodDetail =
+    selectedGrade === 'TRIAL'
+      ? BIBLE_PLANS.TRIAL.periods['3일']
+      : currentPlan.periods[period] || currentPlan.periods['1년'];
+
+  // [3-1단계] 1단계 설문지 신청자 이메일 확인
   const handleCheckEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -39,10 +96,16 @@ export default function GateControlPage() {
 
       if (data.found) {
         setUserName(data.name || '고객');
-        setCompanyName(data.company || '');
-        // 이미 라이선스 키가 발급되어 있는 고객이라면 바로 3-3(키 입력) 단계로 안내 가능
+        setCompanyName(data.company || '개인');
+        if (data.bankAccount) {
+          setBankInfo(data.bankAccount);
+        }
+        // 첫 진입 시 무조건 STANDARD / 1년 기본 세팅 유지
+        setSelectedGrade('STANDARD');
+        setPeriod('1년');
+
         if (data.hasKey) {
-          setInfoMsg(`${data.name} 님, 이미 발급된 라이선스 내역이 확인되었습니다. 라이선스 키를 입력해 주세요.`);
+          setInfoMsg(`${data.name} 님, 이미 발급된 라이선스 키가 확인되었습니다. 키를 입력해 주세요.`);
           setStep('3-3');
         } else {
           setStep('3-2');
@@ -57,7 +120,7 @@ export default function GateControlPage() {
     }
   };
 
-  // [3-2단계] 등급 선택 및 구독/입금 정보 제출
+  // [3-2단계] 등급·기간·입금자명 제출 -> 관리대장 (기초) 시트로 즉시 전송
   const handleSubmitSubscription = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -77,7 +140,9 @@ export default function GateControlPage() {
           action: 'submitSubscription',
           email: email.trim(),
           grade: selectedGrade,
-          period: selectedGrade === 'TRIAL' ? '무료체험' : period,
+          period: selectedGrade === 'TRIAL' ? '3일' : period,
+          quota: currentPeriodDetail.quota,
+          price: currentPeriodDetail.price,
           depositor: selectedGrade === 'TRIAL' ? '무료체험' : depositor.trim(),
         }),
       });
@@ -85,9 +150,9 @@ export default function GateControlPage() {
 
       if (data.success) {
         if (selectedGrade === 'TRIAL') {
-          setInfoMsg('무료체험(TRIAL) 신청이 등록되었습니다. 발급된 체험용 키 또는 안내받은 키를 입력해 주세요.');
+          setInfoMsg('무료체험(TRIAL - 3일간 10회) 신청이 등록되었습니다. 발급된 라이선스 키를 입력해 주세요.');
         } else {
-          setInfoMsg('구독 및 입금 확인 요청이 접수되었습니다. 관제탑 승인 후 전달받은 라이선스 키를 아래에 입력해 주세요.');
+          setInfoMsg('구독 및 입금 확인 요청이 관리대장에 정상 접수되었습니다. 입금 확인 후 발급된 라이선스 키를 입력해 주세요.');
         }
         setStep('3-3');
       } else {
@@ -100,7 +165,7 @@ export default function GateControlPage() {
     }
   };
 
-  // [3-3단계 & 4단계] 라이선스 키 최종 검증 후 5단계(본 앱)로 이동
+  // [3-3단계] 라이선스 키 검증 후 본 앱 이동
   const handleVerifyKey = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -123,7 +188,6 @@ export default function GateControlPage() {
       const data = await res.json();
 
       if (data.valid) {
-        // 인증 정보를 브라우저 세션에 저장 후 본 앱(index.html)으로 이동
         sessionStorage.setItem('sc_verified_email', email.trim());
         sessionStorage.setItem('sc_verified_grade', data.grade || selectedGrade);
         sessionStorage.setItem('sc_verified_key', licenseKey.trim());
@@ -140,7 +204,7 @@ export default function GateControlPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px', fontFamily: 'sans-serif' }}>
-      <div style={{ maxWidth: '520px', width: '100%', backgroundColor: '#1e293b', borderRadius: '16px', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', border: '1px solid #334155' }}>
+      <div style={{ maxWidth: '560px', width: '100%', backgroundColor: '#1e293b', borderRadius: '16px', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', border: '1px solid #334155' }}>
         
         {/* 상단 헤더 */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
@@ -170,7 +234,7 @@ export default function GateControlPage() {
           </span>
         </div>
 
-        {/* 에러 및 안내 메시지 출력창 */}
+        {/* 에러 및 안내 메시지 */}
         {errorMsg && (
           <div style={{ backgroundColor: '#7f1d1d', color: '#fecaca', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '20px', border: '1px solid #dc2626' }}>
             ⚠️ {errorMsg}
@@ -226,7 +290,7 @@ export default function GateControlPage() {
           <form onSubmit={handleSubmitSubscription}>
             <div style={{ backgroundColor: '#0f172a', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', color: '#cbd5e1' }}>
               반갑습니다, <strong>{userName}</strong> 님 ({companyName || '개인'})!<br />
-              이용하실 구독 등급을 선택해 주세요.
+              이용하실 구독 등급과 구독 기간을 선택해 주세요.
             </div>
 
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#e2e8f0' }}>
@@ -234,49 +298,70 @@ export default function GateControlPage() {
             </label>
             <select
               value={selectedGrade}
-              onChange={(e) => setSelectedGrade(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', fontSize: '15px', marginBottom: '16px' }}
+              onChange={(e) => setSelectedGrade(e.target.value as any)}
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', fontSize: '14.5px', marginBottom: '16px' }}
             >
-              <option value="TRIAL">TRIAL (무료 체험 - 10회 질문 제공)</option>
-              <option value="STANDARD">STANDARD (현장 실무자용 - 월 300회)</option>
-              <option value="PRO">PRO (안전관리자·전문가용 - 월 600회)</option>
-              <option value="ULTRA">ULTRA (CEO·경영책임자 전담 관제 - 월 1,000회)</option>
+              <option value="STANDARD">{BIBLE_PLANS.STANDARD.label}</option>
+              <option value="PRO">{BIBLE_PLANS.PRO.label}</option>
+              <option value="ULTRA">{BIBLE_PLANS.ULTRA.label}</option>
+              <option value="TRIAL">{BIBLE_PLANS.TRIAL.label}</option>
             </select>
 
-            {selectedGrade !== 'TRIAL' && (
+            {selectedGrade !== 'TRIAL' ? (
               <>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#e2e8f0' }}>
-                  구독 기간
+                  구독 기간 및 요금 선택 (기본: 1년)
                 </label>
                 <select
                   value={period}
-                  onChange={(e) => setPeriod(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', fontSize: '15px', marginBottom: '16px' }}
+                  onChange={(e) => setPeriod(e.target.value as any)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', fontSize: '14.5px', marginBottom: '16px' }}
                 >
-                  <option value="1개월">1개월</option>
-                  <option value="3개월">3개월</option>
-                  <option value="6개월">6개월</option>
-                  <option value="12개월">12개월 (연간 할인)</option>
+                  <option value="1년">{currentPlan.periods['1년'].display}</option>
+                  <option value="6개월">{currentPlan.periods['6개월'].display}</option>
+                  <option value="1개월">{currentPlan.periods['1개월'].display}</option>
                 </select>
 
-                <div style={{ backgroundColor: '#1e3a8a', padding: '14px', borderRadius: '8px', marginBottom: '16px', fontSize: '13.5px', lineHeight: '1.6', color: '#e0f2fe' }}>
+                {/* 선택 상품 요약 */}
+                <div style={{ backgroundColor: '#0f172a', border: '1px solid #38bdf8', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13.5px', lineHeight: '1.6' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#cbd5e1' }}>
+                    <span>• 사용 인원(팀원 한도): <strong>{currentPlan.users}</strong></span>
+                    <span>• Q&amp;A 부여 한도: <strong>{currentPeriodDetail.quota.toLocaleString()}회</strong></span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #334155', fontSize: '15px' }}>
+                    <span style={{ color: '#e2e8f0', fontWeight: 'bold' }}>결제하실 구독료 ({period})</span>
+                    <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '17px' }}>
+                      {currentPeriodDetail.price.toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+
+                {/* 무통장 입금 계좌 안내 */}
+                <div style={{ backgroundColor: '#1e3a8a', padding: '14px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13.5px', lineHeight: '1.7', color: '#e0f2fe', border: '1px solid #3b82f6' }}>
                   💳 <strong>무통장 입금 계좌 안내</strong><br />
-                  • 은행명: <strong>하나은행</strong> (예금주: <strong>권일주</strong>)<br />
-                  • 입금 확인 후 관제탑에서 즉시 라이선스 키를 승인·발급해 드립니다.
+                  • 입금 계좌: <strong style={{ color: '#fde047', fontSize: '15px' }}>{bankInfo}</strong><br />
+                  • 구독료 입금 확인 후 앱 관제탑에서 <strong>라이선스 키</strong>를 즉시 승인 발급해 드립니다.<br />
+                  • 앱 구독료는 100% 전액 <strong>산업안전보건관리비</strong>로 사용 가능합니다.
                 </div>
 
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#e2e8f0' }}>
-                  입금자명 (사업장명 또는 성명)
+                  실금자 명 (입금하시는 분 성명 또는 사업장명)
                 </label>
                 <input
                   type="text"
                   value={depositor}
                   onChange={(e) => setDepositor(e.target.value)}
-                  placeholder="입금하시는 분의 성함을 입력해 주세요"
+                  placeholder="실제 입금자명을 입력해 주세요"
                   required
                   style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', fontSize: '15px', marginBottom: '16px', boxSizing: 'border-box' }}
                 />
               </>
+            ) : (
+              <div style={{ backgroundColor: '#0f172a', border: '1px solid #38bdf8', padding: '14px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', color: '#e2e8f0', lineHeight: '1.6' }}>
+                🎁 <strong>TRIAL (사전 검증 무료 체험) 안내</strong><br />
+                • 사용자 수: <strong>2인</strong> / 체험 기간 및 한도: <strong>3일간 10회</strong><br />
+                • 가격: <strong>무료 (0원)</strong>
+              </div>
             )}
 
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -298,7 +383,7 @@ export default function GateControlPage() {
           </form>
         )}
 
-        {/* ==================== [3-3단계 & 4단계] 라이선스 키 입력 ==================== */}
+        {/* ==================== [3-3단계] 라이선스 키 인증 ==================== */}
         {step === '3-3' && (
           <form onSubmit={handleVerifyKey}>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#e2e8f0' }}>
