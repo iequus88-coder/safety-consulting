@@ -106,7 +106,7 @@ export default function GateControlPage() {
         setSelectedGrade('STANDARD');
         setPeriod('1년');
 
-        if (data.status === '승인' && data.licenseKey) {
+        if ((data.status === '승인' || data.status === '대기') '' && data.licenseKey) {
           setInfoMsg(`${data.name} 님, 승인 완료된 라이선스 키가 있습니다. 키를 입력해 주세요.`);
           setLicenseKey(data.licenseKey);
           setStep('3-3');
