@@ -404,26 +404,34 @@
       document.getElementById('alert-box').classList.add('hidden');
     }
 
-    function goStep(step) {
-      hideAlert();
-      [1, 2, 3].forEach(s => {
-        document.getElementById('step-' + s).classList.toggle('hidden', s !== step);
-        const tab = document.getElementById('tab-' + s);
-        if (s === step) {
-          tab.className = 'text-sky-400 border-b-2 border-sky-400 pb-2 cursor-pointer';
-        } else {
-          tab.className = 'text-slate-400 hover:text-slate-200 pb-2 cursor-pointer';
-        }
-      });
-
-      // 3-2 단계일 때 왼쪽 구독모델 운영안 표에 파란색 강조 테두리 표시
-      const biblePanel = document.getElementById('bible-panel');
-      if (step === 2) {
-        biblePanel.classList.add('highlight-bible');
-      } else {
-        biblePanel.classList.remove('highlight-bible');
-      }
+   function goStep(step) {
+  hideAlert();
+  [1, 2, 3].forEach(s => {
+    document.getElementById('step-' + s).classList.toggle('hidden', s !== step);
+    const tab = document.getElementById('tab-' + s);
+    if (s === step) {
+      tab.className = 'text-sky-400 border-b-2 border-sky-400 pb-2 cursor-pointer';
+    } else {
+      tab.className = 'text-slate-400 hover:text-slate-200 pb-2 cursor-pointer';
     }
+  });
+
+  // 3-2 단계를 누를 때 하독 구독모델 요금안 표에 감싼 테두리 표시
+  const biblePanel = document.getElementById('bible-panel');
+  if (biblePanel) {
+    if (step === 2) {
+      biblePanel.classList.add('highlight-bible');
+    } else {
+      biblePanel.classList.remove('highlight-bible');
+    }
+  }
+
+  // 핵심 조치: 3-2단계(등급·결제 신청)일 때만 안내 패널 표시, 그 외(3-1, 3-3)는 숨김 처리
+  const pricingPanel = document.getElementById('pricing-guide-panel');
+  if (pricingPanel) {
+    pricingPanel.style.display = (step === 2) ? 'block' : 'none';
+  }
+}
 
     function onTierChange() {
       const tier = document.getElementById('select-tier').value;
