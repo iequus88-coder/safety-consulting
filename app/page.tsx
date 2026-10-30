@@ -291,7 +291,7 @@ export default function GateControlPage() {
                 <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#38bdf8', margin: '0 0 12px 0', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>
                   📊 구독모델 운영안 참고표
                 </h3>
-                <div style={{ fontSize: '12.5px', color: '#cbd5e1', lineHeight: '1.6', spaceY: '10px' }}>
+                <div style={{ fontSize: '12.5px', color: '#cbd5e1', lineHeight: '1.6' }}>
                   <div style={{ marginBottom: '10px' }}>
                     <strong style={{ color: '#fff' }}>1. STANDARD</strong><br/>
                     • 수험생 / 단일 현장 (1인)<br/>
