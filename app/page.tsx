@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 // GAS 웹앱 배포 URL (환경변수 우선, 없을 시 UI 우측 상단 설정 모달에서 즉시 입력 가능)
 const DEFAULT_GAS_URL =
   process.env.NEXT_PUBLIC_GAS_WEBAPP_URL ||
-  "https://script.google.com/macros/s/AKfycbz_YOUR_DEPLOYMENT_ID/exec";
+  "https://script.google.com/macros/s/AKfycbzk7g7ZrzQHTdbuZyZEKIOOsbXbtbwLISKUs1iBwP-Oyn3Gdx-Chl8IyLCjSoHPKtiB8g/exec";
 
 type SubStep3 = "3-1" | "3-2" | "3-3";
 type MainStage = 3 | 4 | 5;
