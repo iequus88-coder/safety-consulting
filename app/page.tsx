@@ -93,12 +93,12 @@ export default function SafetyControlTower15Page() {
     {
       role: "ai",
       content:
-        "안녕하십니까. 회사의 법적 리스크를 통제/지원하는 [안전 관제탑 - 안전 내비게이션] 메인 시스템입니다. 중대재해처벌법, 산업안전보건법 등 얽혀있는 20여 개 안전관련 법규에 대해 궁금하신 실무 질문을 입력해 주십시오.",
+        "안녕하십니까. 회사의 법적 리스크를 통제/지원하는 [안전 관제탑 - 안전 내비게이션] 메인 시스템입니다. 중대재해처벌법, 산업안전보건법, 건설기술진흥법, 전기공사업법 등 얽혀있는 20여 개 안전관련 법규에 대해 궁금하신 실무 질문을 입력해 주십시오.",
       time: "시스템 가동 완료",
     },
   ]);
 
-  // 통신 로딩 및 배너 상태 (14-14의 빨간 박스 에러 오판 완전 해결)
+  // 통신 로딩 및 배너 상태
   const [loading, setLoading] = useState<boolean>(false);
   const [banner, setBanner] = useState<{
     type: "success" | "error" | "info" | null;
@@ -147,28 +147,38 @@ export default function SafetyControlTower15Page() {
           setStage(5);
           setBanner({
             type: "success",
-            message: "크롬 프리패스 자동 인증 완료! 5단계 안전 관제탑 메인으로 진입했습니다.",
+            message:
+              "크롬 프리패스 자동 인증 완료! 5단계 안전 관제탑 메인으로 진입했습니다.",
           });
         }
       }
     }
   }, []);
 
-  // [15-0 핵심 방어 로직] 서버 응답이 성공인지 정확히 판별 (완료 문구를 에러로 처리하던 14-14 버그 차단)
+  // [15-0 핵심 방어 로직] 서버 응답이 성공인지 정확히 판별 (완료 문구를 에러로 처리하던 버그 완벽 차단)
   const isSuccessPayload = (res: any): boolean => {
     if (!res) return false;
-    if (res.success === true || res.verified === true || res.authenticated === true) {
+    if (
+      res.success === true ||
+      res.verified === true ||
+      res.authenticated === true ||
+      res.result === "success" ||
+      res.ok === true
+    ) {
       return true;
     }
-    const st = String(res.status || "").toLowerCase();
-    if (["success", "ok", "verified", "authenticated"].includes(st)) {
+    const st = String(res.status || res.result || "").toLowerCase();
+    if (["success", "ok", "verified", "authenticated", "found", "valid"].includes(st)) {
       return true;
     }
-    const msg = String(res.message || "");
+    const msg = String(res.message || res.msg || "");
     if (
       msg.includes("신청자 확인이 완료되었습니다") ||
       msg.includes("완료되었습니다") ||
-      msg.includes("인증이 완료")
+      msg.includes("인증이 완료") ||
+      msg.includes("확인되었습니다") ||
+      msg.includes("발급") ||
+      msg.includes("성공")
     ) {
       return true;
     }
@@ -190,10 +200,13 @@ export default function SafetyControlTower15Page() {
     try {
       if (gasUrl.includes("YOUR_DEPLOYMENT_ID")) {
         await new Promise((r) => setTimeout(r, 500));
-        setUserName(targetEmail === "iequus88@gmail.com" ? "정동진 총괄님" : "사전신청 고객님");
+        setUserName(
+          targetEmail === "iequus88@gmail.com" ? "정동진 총괄님" : "사전신청 고객님"
+        );
         setBanner({
           type: "success",
-          message: "신청자 확인이 완료되었습니다. (3-2 구독 등급 선택 단계로 자동 이동)",
+          message:
+            "신청자 확인이 완료되었습니다. (3-2 구독 등급 선택 단계로 자동 이동)",
         });
         setSubStep("3-2");
         setLoading(false);
@@ -227,9 +240,8 @@ export default function SafetyControlTower15Page() {
 
         setBanner({
           type: "success",
-          message: "신청자 확인이 완료되었습니다.",
+          message: "신청자 확인이 완료되었습니다. 3-2 구독 등급 선택 단계로 이동합니다.",
         });
-        // 에러 박스가 아닌 초록색 승인 배너 표시 후 즉시 3-2로 이동
         setSubStep("3-2");
       } else {
         setBanner({
@@ -250,7 +262,8 @@ export default function SafetyControlTower15Page() {
       } else {
         setBanner({
           type: "error",
-          message: "백엔드 서버 연결을 확인해 주세요. 우측 상단 [API 주소 설정]에서 배포 URL 점검이 필요합니다.",
+          message:
+            "백엔드 서버 연결을 확인해 주세요. 우측 상단 [GAS API 주소 설정]에서 배포 URL 점검이 필요합니다.",
         });
       }
     } finally {
@@ -299,13 +312,16 @@ export default function SafetyControlTower15Page() {
 
       const data = await response.json();
 
-      if (isSuccessPayload(data)) {
-        const keyFromServer = data.licenseKey || `SCT-${selectedTier.substring(0, 3)}-150KEY`;
+      if (isSuccessPayload(data) || data.licenseKey) {
+        const keyFromServer =
+          data.licenseKey || `SCT-${selectedTier.substring(0, 3)}-150KEY`;
         setLicenseKey(keyFromServer);
         if (data.expireDate) setExpireDate(data.expireDate);
         setAllottedQuota(data.allottedQuota || chosenSpec.quotaNum);
         setRemainingQuota(
-          typeof data.remainingQuota === "number" ? data.remainingQuota : chosenSpec.quotaNum
+          typeof data.remainingQuota === "number"
+            ? data.remainingQuota
+            : chosenSpec.quotaNum
         );
 
         setBanner({
@@ -353,7 +369,8 @@ export default function SafetyControlTower15Page() {
         await new Promise((r) => setTimeout(r, 400));
         setBanner({
           type: "success",
-          message: "3-3 라이선스 키 인증 성공! 4단계 브라우저 최적화 점검 단계로 진입합니다.",
+          message:
+            "3-3 라이선스 키 인증 성공! 4단계 브라우저 최적화 점검 단계로 진입합니다.",
         });
         setStage(4);
         setLoading(false);
@@ -375,13 +392,16 @@ export default function SafetyControlTower15Page() {
       if (isSuccessPayload(data)) {
         if (data.tier) setSelectedTier(data.tier as TierKey);
         if (data.expireDate) setExpireDate(data.expireDate);
-        if (typeof data.allottedQuota === "number") setAllottedQuota(data.allottedQuota);
+        if (typeof data.allottedQuota === "number")
+          setAllottedQuota(data.allottedQuota);
         if (typeof data.usedQuota === "number") setUsedQuota(data.usedQuota);
-        if (typeof data.remainingQuota === "number") setRemainingQuota(data.remainingQuota);
+        if (typeof data.remainingQuota === "number")
+          setRemainingQuota(data.remainingQuota);
 
         setBanner({
           type: "success",
-          message: "라이선스 검증 완료! 4단계 브라우저 선택 및 점검 화면으로 이동합니다.",
+          message:
+            "라이선스 검증 완료! 4단계 브라우저 선택 및 점검 화면으로 이동합니다.",
         });
         setStage(4);
       } else {
@@ -485,30 +505,120 @@ export default function SafetyControlTower15Page() {
     }
   };
 
+  // 공통 인라인 입력창 스타일
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "12px 16px",
+    borderRadius: "12px",
+    backgroundColor: "#020617",
+    border: "1px solid #334155",
+    color: "#ffffff",
+    fontSize: "14px",
+    outline: "none",
+    boxSizing: "border-box",
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#020617",
+        color: "#f1f5f9",
+        display: "flex",
+        flexDirection: "column",
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Gothic", sans-serif',
+      }}
+    >
       {/* 상단 헤더 */}
-      <header className="border-b border-slate-800 bg-slate-900/90 sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <header
+        style={{
+          borderBottom: "1px solid #1e293b",
+          backgroundColor: "rgba(15, 23, 42, 0.95)",
+          position: "sticky",
+          top: 0,
+          zIndex: 30,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1152px",
+            margin: "0 auto",
+            padding: "16px",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+          }}
+        >
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2 py-0.5 text-xs font-extrabold rounded bg-amber-500 text-slate-950">
-                Ver 15-0 (14-14 정통 계승)
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: "6px",
+              }}
+            >
+              <span
+                style={{
+                  padding: "3px 8px",
+                  fontSize: "12px",
+                  fontWeight: 800,
+                  borderRadius: "6px",
+                  backgroundColor: "#f59e0b",
+                  color: "#020617",
+                }}
+              >
+                Ver 15-0 (인라인 완전본)
               </span>
-              <span className="text-xs text-amber-300 font-semibold">안전 내비게이션</span>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "#fcd34d",
+                  fontWeight: 700,
+                }}
+              >
+                안전 내비게이션
+              </span>
             </div>
-            <h1 className="text-lg md:text-xl font-extrabold text-white">
+            <h1
+              style={{
+                fontSize: "20px",
+                fontWeight: 800,
+                color: "#ffffff",
+                margin: 0,
+              }}
+            >
               회사의 법적 리스크를 통제/지원하는 안전 관제탑
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#94a3b8",
+                marginTop: "4px",
+                marginBottom: 0,
+              }}
+            >
               중처법 등 얽혀있는 20여개의 안전관련법규를 깔끔하게 정리해서 쉬운 솔루션을 제시하는 안전 내비게이션
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button
+              type="button"
               onClick={() => setShowUrlModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-semibold"
+              style={{
+                padding: "8px 14px",
+                borderRadius: "8px",
+                backgroundColor: "#1e293b",
+                border: "1px solid #334155",
+                fontSize: "12px",
+                color: "#e2e8f0",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
             >
               ⚙️ GAS API 주소 설정
             </button>
@@ -517,74 +627,227 @@ export default function SafetyControlTower15Page() {
       </header>
 
       {/* 상단 3단계 ~ 5단계 마스터 워크플로우 진행 바 */}
-      <div className="bg-slate-900 border-b border-slate-800">
-        <div className="max-w-6xl mx-auto px-4 py-3 grid grid-cols-3 gap-3">
+      <div
+        style={{
+          backgroundColor: "#0f172a",
+          borderBottom: "1px solid #1e293b",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1152px",
+            margin: "0 auto",
+            padding: "12px 16px",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: "12px",
+          }}
+        >
           <button
             type="button"
             onClick={() => setStage(3)}
-            className={`p-3 rounded-xl border text-left transition ${
-              stage === 3
-                ? "bg-amber-500/15 border-amber-500 text-white"
-                : "bg-slate-950 border-slate-800 text-slate-400"
-            }`}
+            style={{
+              padding: "14px",
+              borderRadius: "12px",
+              border:
+                stage === 3 ? "2px solid #f59e0b" : "1px solid #1e293b",
+              backgroundColor:
+                stage === 3 ? "rgba(245, 158, 11, 0.15)" : "#020617",
+              color: stage === 3 ? "#ffffff" : "#94a3b8",
+              textAlign: "left",
+              cursor: "pointer",
+            }}
           >
-            <div className="text-xs font-extrabold text-amber-400">3단계 관문</div>
-            <div className="text-sm font-bold mt-0.5">신청 확인 · 구독 · 키 인증</div>
-            <div className="text-xs text-slate-400 mt-0.5">3-1 확인 ➔ 3-2 신청 ➔ 3-3 인증</div>
+            <div
+              style={{
+                fontSize: "12px",
+                fontWeight: 800,
+                color: "#fbbf24",
+              }}
+            >
+              3단계 관문
+            </div>
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: 700,
+                marginTop: "4px",
+              }}
+            >
+              신청 확인 · 구독 · 키 인증
+            </div>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#94a3b8",
+                marginTop: "4px",
+              }}
+            >
+              3-1 확인 ➔ 3-2 신청 ➔ 3-3 인증
+            </div>
           </button>
 
           <button
             type="button"
             onClick={() => licenseKey && setStage(4)}
-            className={`p-3 rounded-xl border text-left transition ${
-              stage === 4
-                ? "bg-amber-500/15 border-amber-500 text-white"
-                : "bg-slate-950 border-slate-800 text-slate-400"
-            }`}
+            style={{
+              padding: "14px",
+              borderRadius: "12px",
+              border:
+                stage === 4 ? "2px solid #f59e0b" : "1px solid #1e293b",
+              backgroundColor:
+                stage === 4 ? "rgba(245, 158, 11, 0.15)" : "#020617",
+              color: stage === 4 ? "#ffffff" : "#94a3b8",
+              textAlign: "left",
+              cursor: licenseKey ? "pointer" : "not-allowed",
+            }}
           >
-            <div className="text-xs font-extrabold text-amber-400">4단계 관문</div>
-            <div className="text-sm font-bold mt-0.5">브라우저 점검 및 크롬 프리패스</div>
-            <div className="text-xs text-slate-400 mt-0.5">웨일 음성제한 안내 · 크롬 자동연결</div>
+            <div
+              style={{
+                fontSize: "12px",
+                fontWeight: 800,
+                color: "#fbbf24",
+              }}
+            >
+              4단계 관문
+            </div>
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: 700,
+                marginTop: "4px",
+              }}
+            >
+              브라우저 점검 및 크롬 프리패스
+            </div>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#94a3b8",
+                marginTop: "4px",
+              }}
+            >
+              웨일 음성제한 안내 · 크롬 자동연결
+            </div>
           </button>
 
           <button
             type="button"
             onClick={() => licenseKey && setStage(5)}
-            className={`p-3 rounded-xl border text-left transition ${
-              stage === 5
-                ? "bg-emerald-500/15 border-emerald-500 text-white"
-                : "bg-slate-950 border-slate-800 text-slate-400"
-            }`}
+            style={{
+              padding: "14px",
+              borderRadius: "12px",
+              border:
+                stage === 5 ? "2px solid #10b981" : "1px solid #1e293b",
+              backgroundColor:
+                stage === 5 ? "rgba(16, 185, 129, 0.15)" : "#020617",
+              color: stage === 5 ? "#ffffff" : "#94a3b8",
+              textAlign: "left",
+              cursor: licenseKey ? "pointer" : "not-allowed",
+            }}
           >
-            <div className="text-xs font-extrabold text-emerald-400">5단계 메인 가동</div>
-            <div className="text-sm font-bold mt-0.5">안전 관제탑 AI 자문 개시</div>
-            <div className="text-xs text-slate-400 mt-0.5">실시간 Q&A 쿼터 차감(M·N·O열)</div>
+            <div
+              style={{
+                fontSize: "12px",
+                fontWeight: 800,
+                color: "#34d399",
+              }}
+            >
+              5단계 메인 가동
+            </div>
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: 700,
+                marginTop: "4px",
+              }}
+            >
+              안전 관제탑 AI 자문 개시
+            </div>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#94a3b8",
+                marginTop: "4px",
+              }}
+            >
+              실시간 Q&A 쿼터 차감(M·N·O열)
+            </div>
           </button>
         </div>
       </div>
 
       {/* 본문 컨테이너 */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8">
+      <main
+        style={{
+          flex: 1,
+          maxWidth: "1152px",
+          width: "100%",
+          margin: "0 auto",
+          padding: "32px 16px",
+          boxSizing: "border-box",
+        }}
+      >
         {/* 알림 배너 (성공=초록색, 안내=파란색, 에러=빨간색 명확 분리) */}
         {banner.message && (
           <div
-            className={`mb-6 p-4 rounded-xl border flex items-center justify-between gap-3 ${
-              banner.type === "success"
-                ? "bg-emerald-950/80 border-emerald-500 text-emerald-200"
-                : banner.type === "info"
-                ? "bg-sky-950/80 border-sky-500 text-sky-200"
-                : "bg-rose-950/80 border-rose-500 text-rose-200"
-            }`}
+            style={{
+              marginBottom: "24px",
+              padding: "16px",
+              borderRadius: "12px",
+              border:
+                banner.type === "success"
+                  ? "1px solid #10b981"
+                  : banner.type === "info"
+                  ? "1px solid #0ea5e9"
+                  : "1px solid #f43f5e",
+              backgroundColor:
+                banner.type === "success"
+                  ? "rgba(6, 78, 59, 0.85)"
+                  : banner.type === "info"
+                  ? "rgba(12, 74, 110, 0.85)"
+                  : "rgba(136, 19, 55, 0.85)",
+              color:
+                banner.type === "success"
+                  ? "#a7f3d0"
+                  : banner.type === "info"
+                  ? "#bae6fd"
+                  : "#fecdd3",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+            }}
           >
-            <div className="text-sm font-bold flex items-center gap-2">
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
               <span>
-                {banner.type === "success" ? "✅" : banner.type === "info" ? "ℹ️" : "⚠️"}
+                {banner.type === "success"
+                  ? "✅"
+                  : banner.type === "info"
+                  ? "ℹ️"
+                  : "⚠️"}
               </span>
               <span>{banner.message}</span>
             </div>
             <button
+              type="button"
               onClick={() => setBanner({ type: null, message: "" })}
-              className="text-xs opacity-75 hover:opacity-100"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "inherit",
+                fontSize: "12px",
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
             >
               닫기 ✕
             </button>
@@ -595,41 +858,102 @@ export default function SafetyControlTower15Page() {
             [3단계 관문] 3-1 이메일 확인 -> 3-2 등급 신청 -> 3-3 키 인증
            ========================================================= */}
         {stage === 3 && (
-          <div className="space-y-6">
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* 3단계 내부 서브 탭 */}
-            <div className="flex gap-2 border-b border-slate-800 pb-4">
-              {(["3-1", "3-2", "3-3"] as SubStep3[]).map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setSubStep(st)}
-                  className={`px-4 py-2 rounded-lg text-xs font-extrabold transition ${
-                    subStep === st
-                      ? "bg-amber-500 text-slate-950"
-                      : "bg-slate-900 text-slate-400 border border-slate-800"
-                  }`}
-                >
-                  {st === "3-1" && "3-1. 신청자 이메일 확인"}
-                  {st === "3-2" && "3-2. 구독 등급 신청 및 키 발급"}
-                  {st === "3-3" && "3-3. 라이선스 키 인증"}
-                </button>
-              ))}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "8px",
+                borderBottom: "1px solid #1e293b",
+                paddingBottom: "16px",
+              }}
+            >
+              {(["3-1", "3-2", "3-3"] as SubStep3[]).map((st) => {
+                const isActive = subStep === st;
+                return (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setSubStep(st)}
+                    style={{
+                      padding: "10px 16px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      backgroundColor: isActive ? "#f59e0b" : "#0f172a",
+                      color: isActive ? "#020617" : "#94a3b8",
+                      border: isActive ? "none" : "1px solid #1e293b",
+                    }}
+                  >
+                    {st === "3-1" && "3-1. 신청자 이메일 확인"}
+                    {st === "3-2" && "3-2. 구독 등급 신청 및 키 발급"}
+                    {st === "3-3" && "3-3. 라이선스 키 인증"}
+                  </button>
+                );
+              })}
             </div>
 
             {/* [3-1] 신청자 이메일 확인 */}
             {subStep === "3-1" && (
-              <div className="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8">
-                <span className="text-xs font-bold text-amber-400">STEP 3-1</span>
-                <h2 className="text-xl font-extrabold text-white mt-1 mb-2">
+              <div
+                style={{
+                  maxWidth: "560px",
+                  width: "100%",
+                  margin: "0 auto",
+                  backgroundColor: "#0f172a",
+                  border: "1px solid #1e293b",
+                  borderRadius: "16px",
+                  padding: "28px",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    color: "#fbbf24",
+                  }}
+                >
+                  STEP 3-1
+                </span>
+                <h2
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: 800,
+                    color: "#ffffff",
+                    marginTop: "6px",
+                    marginBottom: "8px",
+                  }}
+                >
                   사전신청자 이메일 확인 (고객관리대장 자동 인입 연동)
                 </h2>
-                <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "#94a3b8",
+                    marginBottom: "24px",
+                    lineHeight: 1.6,
+                  }}
+                >
                   설문지 응답 시트에 접수된 구독자 데이터를 고객관리대장(A열~Q열)으로 실시간 자동 인입한 후 신청자 여부를 확인합니다. 확인 완료 시 즉시 3-2 단계로 넘어갑니다.
                 </p>
 
-                <form onSubmit={handleStep3_1_CheckEmail} className="space-y-4">
+                <form
+                  onSubmit={handleStep3_1_CheckEmail}
+                  style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+                >
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-2">
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        color: "#cbd5e1",
+                        marginBottom: "8px",
+                      }}
+                    >
                       신청자 이메일 주소 (B열 기준)
                     </label>
                     <input
@@ -638,13 +962,24 @@ export default function SafetyControlTower15Page() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="iequus88@gmail.com"
-                      className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:border-amber-500 focus:outline-none"
+                      style={inputStyle}
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-extrabold text-sm transition"
+                    style={{
+                      width: "100%",
+                      padding: "14px",
+                      borderRadius: "12px",
+                      backgroundColor: "#f59e0b",
+                      color: "#020617",
+                      fontWeight: 800,
+                      fontSize: "14px",
+                      border: "none",
+                      cursor: loading ? "wait" : "pointer",
+                      opacity: loading ? 0.6 : 1,
+                    }}
                   >
                     {loading
                       ? "구독자 데이터 동기화 및 신청자 확인 중..."
@@ -656,50 +991,130 @@ export default function SafetyControlTower15Page() {
 
             {/* [3-2] 구독 등급 선택 및 고객관리대장(I~Q열) 신청 */}
             {subStep === "3-2" && (
-              <form onSubmit={handleStep3_2_ApplySubscription} className="space-y-6">
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                  <span className="text-xs font-bold text-emerald-400">
+              <form
+                onSubmit={handleStep3_2_ApplySubscription}
+                style={{ display: "flex", flexDirection: "column", gap: "24px" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#0f172a",
+                    border: "1px solid #1e293b",
+                    borderRadius: "16px",
+                    padding: "24px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: 800,
+                      color: "#34d399",
+                    }}
+                  >
                     STEP 3-2 · 신청자 확인 완료 ({email})
                   </span>
-                  <h2 className="text-xl font-extrabold text-white mt-1">
+                  <h2
+                    style={{
+                      fontSize: "20px",
+                      fontWeight: 800,
+                      color: "#ffffff",
+                      marginTop: "6px",
+                      marginBottom: "4px",
+                    }}
+                  >
                     구독 등급 선택 및 라이선스 발급 신청
                   </h2>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "#94a3b8",
+                      marginTop: "4px",
+                      marginBottom: "20px",
+                    }}
+                  >
                     등급 선택 시 고객관리대장 K열(만료일), L열(라이선스KEY), M열(부여횟수), O열(잔여횟수)이 자동 계산됩니다.
                   </p>
 
                   {/* 4대 등급 카드 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: "16px",
+                    }}
+                  >
                     {TIER_LIST.map((item) => {
                       const active = selectedTier === item.id;
                       return (
                         <div
                           key={item.id}
                           onClick={() => setSelectedTier(item.id)}
-                          className={`cursor-pointer rounded-xl p-4 border transition ${
-                            active
-                              ? "bg-amber-500/15 border-amber-500"
-                              : "bg-slate-950 border-slate-800 hover:border-slate-700"
-                          }`}
+                          style={{
+                            cursor: "pointer",
+                            borderRadius: "12px",
+                            padding: "18px",
+                            border: active
+                              ? "2px solid #f59e0b"
+                              : "1px solid #1e293b",
+                            backgroundColor: active
+                              ? "rgba(245, 158, 11, 0.15)"
+                              : "#020617",
+                          }}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300">
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              marginBottom: "10px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                backgroundColor: "#1e293b",
+                                color: "#fcd34d",
+                              }}
+                            >
                               {item.badge}
                             </span>
                             <input
                               type="radio"
                               checked={active}
                               onChange={() => setSelectedTier(item.id)}
-                              className="accent-amber-500"
+                              style={{ accentColor: "#f59e0b" }}
                             />
                           </div>
-                          <div className="font-extrabold text-white text-base">
+                          <div
+                            style={{
+                              fontWeight: 800,
+                              color: "#ffffff",
+                              fontSize: "16px",
+                            }}
+                          >
                             {item.title}
                           </div>
-                          <div className="text-xs text-amber-400 font-bold mt-1">
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "#fbbf24",
+                              fontWeight: 700,
+                              marginTop: "6px",
+                            }}
+                          >
                             기간: {item.period} / {item.quotaText}
                           </div>
-                          <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                          <p
+                            style={{
+                              fontSize: "12px",
+                              color: "#94a3b8",
+                              marginTop: "8px",
+                              marginBottom: 0,
+                              lineHeight: 1.5,
+                            }}
+                          >
                             {item.desc}
                           </p>
                         </div>
@@ -709,28 +1124,77 @@ export default function SafetyControlTower15Page() {
                 </div>
 
                 {/* 고객관리대장 정규화 항목 입력 (I열 사업장명, J열 사업자번호, P열 소통방법, Q열 실입금자명) */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                  <h3 className="text-sm font-extrabold text-amber-400">
+                <div
+                  style={{
+                    backgroundColor: "#0f172a",
+                    border: "1px solid #1e293b",
+                    borderRadius: "16px",
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 800,
+                      color: "#fbbf24",
+                      margin: 0,
+                    }}
+                  >
                     📋 고객관리대장(I·J·P·Q열) 연동 및 입금·정산 안내
                   </h3>
 
                   {selectedTier !== "TRIAL" && (
-                    <div className="p-4 rounded-xl bg-slate-950 border border-amber-500/40 text-xs space-y-1 text-slate-200">
-                      <div className="font-extrabold text-amber-300">
+                    <div
+                      style={{
+                        padding: "16px",
+                        borderRadius: "12px",
+                        backgroundColor: "#020617",
+                        border: "1px solid rgba(245, 158, 11, 0.5)",
+                        fontSize: "13px",
+                        color: "#e2e8f0",
+                        lineHeight: 1.7,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          color: "#fcd34d",
+                          marginBottom: "4px",
+                        }}
+                      >
                         💳 유료 구독 무통장 입금 및 산업안전보건관리비 정산 안내
                       </div>
                       <div>
-                        • 입금 계좌: <strong>하나은행 201-890629-15207 (예금주: 권일주)</strong>
+                        • 입금 계좌:{" "}
+                        <strong>하나은행 201-890629-15207 (예금주: 권일주)</strong>
                       </div>
                       <div>
-                        • 정산 특전: 본 서비스 구독료는 <strong>산업안전보건관리비 100% 정산</strong>이 가능합니다 (B2B 세무 증빙 지원).
+                        • 정산 특전: 본 서비스 구독료는{" "}
+                        <strong>산업안전보건관리비 100% 정산</strong>이 가능합니다 (B2B 세무 증빙 지원).
                       </div>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                      gap: "16px",
+                    }}
+                  >
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#cbd5e1",
+                          marginBottom: "6px",
+                        }}
+                      >
                         사업장명 (I열 - B2B 세무증빙용, 선택)
                       </label>
                       <input
@@ -738,11 +1202,19 @@ export default function SafetyControlTower15Page() {
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
                         placeholder="예: (주)안전관제탑건설"
-                        className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                        style={inputStyle}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#cbd5e1",
+                          marginBottom: "6px",
+                        }}
+                      >
                         사업자등록번호 (J열 - B2B 세무증빙용, 선택)
                       </label>
                       <input
@@ -750,17 +1222,25 @@ export default function SafetyControlTower15Page() {
                         value={bizNumber}
                         onChange={(e) => setBizNumber(e.target.value)}
                         placeholder="예: 123-45-67890"
-                        className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                        style={inputStyle}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#cbd5e1",
+                          marginBottom: "6px",
+                        }}
+                      >
                         소통 방법 (P열 기록)
                       </label>
                       <select
                         value={commMethod}
                         onChange={(e) => setCommMethod(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                        style={inputStyle}
                       >
                         <option value="이메일 및 문자">이메일 및 문자</option>
                         <option value="카카오톡 알림">카카오톡 알림</option>
@@ -768,7 +1248,15 @@ export default function SafetyControlTower15Page() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#cbd5e1",
+                          marginBottom: "6px",
+                        }}
+                      >
                         실입금자명 / 신청자명 (Q열 기록)
                       </label>
                       <input
@@ -776,7 +1264,7 @@ export default function SafetyControlTower15Page() {
                         value={depositor}
                         onChange={(e) => setDepositor(e.target.value)}
                         placeholder="예: 정동진"
-                        className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                        style={inputStyle}
                       />
                     </div>
                   </div>
@@ -784,7 +1272,18 @@ export default function SafetyControlTower15Page() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-extrabold text-sm transition"
+                    style={{
+                      width: "100%",
+                      padding: "15px",
+                      borderRadius: "12px",
+                      backgroundColor: "#f59e0b",
+                      color: "#020617",
+                      fontWeight: 800,
+                      fontSize: "14px",
+                      border: "none",
+                      cursor: loading ? "wait" : "pointer",
+                      opacity: loading ? 0.6 : 1,
+                    }}
                   >
                     {loading
                       ? "고객관리대장(K~Q열) 기록 및 라이선스 키 생성 중..."
@@ -796,29 +1295,82 @@ export default function SafetyControlTower15Page() {
 
             {/* [3-3] 라이선스 키 인증 */}
             {subStep === "3-3" && (
-              <div className="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8">
-                <span className="text-xs font-bold text-amber-400">STEP 3-3</span>
-                <h2 className="text-xl font-extrabold text-white mt-1 mb-2">
+              <div
+                style={{
+                  maxWidth: "560px",
+                  width: "100%",
+                  margin: "0 auto",
+                  backgroundColor: "#0f172a",
+                  border: "1px solid #1e293b",
+                  borderRadius: "16px",
+                  padding: "28px",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 800,
+                    color: "#fbbf24",
+                  }}
+                >
+                  STEP 3-3
+                </span>
+                <h2
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: 800,
+                    color: "#ffffff",
+                    marginTop: "6px",
+                    marginBottom: "8px",
+                  }}
+                >
                   라이선스 키(L열) 인증 및 4단계 진입
                 </h2>
-                <p className="text-xs text-slate-400 mb-6">
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "#94a3b8",
+                    marginBottom: "24px",
+                    lineHeight: 1.6,
+                  }}
+                >
                   고객관리대장 L열에 발급된 라이선스 키와 O열 잔여 횟수를 검증한 뒤 4단계(브라우저 최적화 점검)로 이동합니다.
                 </p>
 
-                <form onSubmit={handleStep3_3_CheckLicense} className="space-y-4">
+                <form
+                  onSubmit={handleStep3_3_CheckLicense}
+                  style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+                >
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        color: "#cbd5e1",
+                        marginBottom: "6px",
+                      }}
+                    >
                       신청 이메일
                     </label>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-sm"
+                      style={inputStyle}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        color: "#cbd5e1",
+                        marginBottom: "6px",
+                      }}
+                    >
                       라이선스 KEY (고객관리대장 L열 연동)
                     </label>
                     <input
@@ -827,13 +1379,31 @@ export default function SafetyControlTower15Page() {
                       value={licenseKey}
                       onChange={(e) => setLicenseKey(e.target.value)}
                       placeholder="예: SCT-TRI-8F92A1"
-                      className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-amber-500 text-amber-300 font-mono font-bold text-base"
+                      style={{
+                        ...inputStyle,
+                        border: "2px solid #f59e0b",
+                        color: "#fcd34d",
+                        fontFamily: "monospace",
+                        fontWeight: 800,
+                        fontSize: "16px",
+                      }}
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-extrabold text-sm transition"
+                    style={{
+                      width: "100%",
+                      padding: "15px",
+                      borderRadius: "12px",
+                      backgroundColor: "#10b981",
+                      color: "#020617",
+                      fontWeight: 800,
+                      fontSize: "14px",
+                      border: "none",
+                      cursor: loading ? "wait" : "pointer",
+                      opacity: loading ? 0.6 : 1,
+                    }}
                   >
                     {loading
                       ? "고객관리대장 L열/O열 검증 중..."
@@ -849,45 +1419,139 @@ export default function SafetyControlTower15Page() {
             [4단계 관문] 브라우저 환경 선택 및 크롬 프리패스 브릿지
            ========================================================= */}
         {stage === 4 && (
-          <div className="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6">
+          <div
+            style={{
+              maxWidth: "680px",
+              width: "100%",
+              margin: "0 auto",
+              backgroundColor: "#0f172a",
+              border: "1px solid #1e293b",
+              borderRadius: "16px",
+              padding: "28px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px",
+              boxSizing: "border-box",
+            }}
+          >
             <div>
-              <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-extrabold">
+              <span
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: "999px",
+                  backgroundColor: "rgba(245, 158, 11, 0.2)",
+                  color: "#fcd34d",
+                  fontSize: "12px",
+                  fontWeight: 800,
+                }}
+              >
                 4단계 관문 · 브라우저 환경 점검 및 프리패스
               </span>
-              <h2 className="text-2xl font-extrabold text-white mt-2">
+              <h2
+                style={{
+                  fontSize: "22px",
+                  fontWeight: 800,
+                  color: "#ffffff",
+                  marginTop: "10px",
+                  marginBottom: "6px",
+                }}
+              >
                 음성 인식 및 AI 자문 최적 브라우저 확인
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                현재 접속 브라우저: <strong className="text-amber-300">{browserName}</strong>
+              <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>
+                현재 접속 브라우저:{" "}
+                <strong style={{ color: "#fcd34d" }}>{browserName}</strong>
               </p>
             </div>
 
             {isWhale ? (
-              <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-500/60 text-xs text-rose-200 space-y-2">
-                <div className="font-extrabold text-sm text-rose-300">
+              <div
+                style={{
+                  padding: "16px",
+                  borderRadius: "12px",
+                  backgroundColor: "rgba(136, 19, 55, 0.55)",
+                  border: "1px solid #f43f5e",
+                  fontSize: "13px",
+                  color: "#fecdd3",
+                  lineHeight: 1.6,
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: "14px",
+                    color: "#fda4af",
+                    marginBottom: "6px",
+                  }}
+                >
                   ⚠️ 네이버 웨일(Naver Whale) 브라우저 접속 감지 안내
                 </div>
-                <p className="leading-relaxed">
-                  네이버 웨일 브라우저에서는 웹 음성 입력(마이크 API) 기능에 제약이 발생할 수 있습니다. 원활한 음성 질의응답을 위해 <strong>Google Chrome(크롬)</strong> 또는 <strong>Microsoft Edge</strong> 사용을 권장합니다.
-                </p>
+                <div>
+                  네이버 웨일 브라우저에서는 웹 음성 입력(마이크 API) 기능에 제약이 발생할 수 있습니다. 원활한 음성 질의응답을 위해{" "}
+                  <strong>Google Chrome(크롬)</strong> 또는{" "}
+                  <strong>Microsoft Edge</strong> 사용을 권장합니다.
+                </div>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/60 text-xs text-emerald-200">
+              <div
+                style={{
+                  padding: "16px",
+                  borderRadius: "12px",
+                  backgroundColor: "rgba(6, 78, 59, 0.6)",
+                  border: "1px solid #10b981",
+                  fontSize: "13px",
+                  color: "#a7f3d0",
+                  fontWeight: 700,
+                }}
+              >
                 ✅ 현재 음성 입력 및 안전 관제탑 구동에 최적화된 브라우저({browserName})로 접속 중입니다.
               </div>
             )}
 
-            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
-              <div className="text-xs font-bold text-slate-300">
+            <div
+              style={{
+                padding: "18px",
+                borderRadius: "12px",
+                backgroundColor: "#020617",
+                border: "1px solid #1e293b",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  color: "#e2e8f0",
+                }}
+              >
                 🔗 타 브라우저(크롬 등)로 이동 시 재인증 생략 프리패스 기능
               </div>
-              <p className="text-xs text-slate-400">
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "#94a3b8",
+                  margin: 0,
+                  lineHeight: 1.6,
+                }}
+              >
                 아래 버튼을 눌러 프리패스 URL을 복사한 뒤 크롬 주소창에 붙여넣으면 3단계 이메일/라이선스 인증을 다시 거치지 않고 곧바로 5단계 메인 관제탑으로 진입합니다.
               </p>
               <button
                 type="button"
                 onClick={handleCopyChromeFreepassUrl}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs font-extrabold"
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "10px",
+                  backgroundColor: "#1e293b",
+                  border: "1px solid #334155",
+                  color: "#fcd34d",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
               >
                 📋 크롬 자동 접속(프리패스) URL 복사하기
               </button>
@@ -896,7 +1560,17 @@ export default function SafetyControlTower15Page() {
             <button
               type="button"
               onClick={() => setStage(5)}
-              className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm transition shadow-lg shadow-emerald-500/20"
+              style={{
+                width: "100%",
+                padding: "16px",
+                borderRadius: "12px",
+                backgroundColor: "#10b981",
+                color: "#020617",
+                fontWeight: 800,
+                fontSize: "15px",
+                border: "none",
+                cursor: "pointer",
+              }}
             >
               5단계 안전 관제탑 메인 AI 자문 시스템 시작하기 🚀
             </button>
@@ -907,77 +1581,244 @@ export default function SafetyControlTower15Page() {
             [5단계 메인] 안전 관제탑 AI 법률 내비게이션 & 실시간 쿼터 차감(deductCount)
            ========================================================= */}
         {stage === 5 && (
-          <div className="space-y-6">
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* 상단 고객관리대장 실시간 연동 대시보드 바 (K, L, M, N, O열) */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <div className="text-[11px] text-slate-400">구독 등급 (G열)</div>
-                <div className="text-sm font-extrabold text-amber-400 mt-1">
+            <div
+              style={{
+                backgroundColor: "#0f172a",
+                border: "1px solid #1e293b",
+                borderRadius: "16px",
+                padding: "20px",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "12px",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  padding: "12px",
+                  borderRadius: "12px",
+                  backgroundColor: "#020617",
+                  border: "1px solid #1e293b",
+                }}
+              >
+                <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                  구독 등급 (G열)
+                </div>
+                <div
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 800,
+                    color: "#fbbf24",
+                    marginTop: "4px",
+                  }}
+                >
                   {selectedTier}
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <div className="text-[11px] text-slate-400">라이선스 KEY (L열)</div>
-                <div className="text-xs font-mono font-bold text-white mt-1 truncate">
+              <div
+                style={{
+                  padding: "12px",
+                  borderRadius: "12px",
+                  backgroundColor: "#020617",
+                  border: "1px solid #1e293b",
+                }}
+              >
+                <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                  라이선스 KEY (L열)
+                </div>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    fontFamily: "monospace",
+                    fontWeight: 700,
+                    color: "#ffffff",
+                    marginTop: "4px",
+                  }}
+                >
                   {licenseKey || "SCT-PASS"}
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <div className="text-[11px] text-slate-400">만료일 (K열)</div>
-                <div className="text-sm font-bold text-slate-200 mt-1">
+              <div
+                style={{
+                  padding: "12px",
+                  borderRadius: "12px",
+                  backgroundColor: "#020617",
+                  border: "1px solid #1e293b",
+                }}
+              >
+                <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                  만료일 (K열)
+                </div>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "#e2e8f0",
+                    marginTop: "4px",
+                  }}
+                >
                   {expireDate || "정상 가동"}
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <div className="text-[11px] text-slate-400">부여 / 사용 (M·N열)</div>
-                <div className="text-sm font-bold text-slate-200 mt-1">
+              <div
+                style={{
+                  padding: "12px",
+                  borderRadius: "12px",
+                  backgroundColor: "#020617",
+                  border: "1px solid #1e293b",
+                }}
+              >
+                <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                  부여 / 사용 (M·N열)
+                </div>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "#e2e8f0",
+                    marginTop: "4px",
+                  }}
+                >
                   {allottedQuota.toLocaleString()} / {usedQuota.toLocaleString()}회
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 col-span-2 md:col-span-1">
-                <div className="text-[11px] text-emerald-300 font-bold">
+              <div
+                style={{
+                  padding: "12px",
+                  borderRadius: "12px",
+                  backgroundColor: "rgba(6, 78, 59, 0.45)",
+                  border: "1px solid #10b981",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "#6ee7b7",
+                    fontWeight: 700,
+                  }}
+                >
                   잔여 횟수 (O열 실시간)
                 </div>
-                <div className="text-base font-black text-emerald-400 mt-0.5">
+                <div
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: 900,
+                    color: "#34d399",
+                    marginTop: "2px",
+                  }}
+                >
                   {remainingQuota.toLocaleString()}회
                 </div>
               </div>
             </div>
 
             {/* 메인 AI 법률 내비게이션 자문 창 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col h-[480px]">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div
+              style={{
+                backgroundColor: "#0f172a",
+                border: "1px solid #1e293b",
+                borderRadius: "16px",
+                padding: "24px",
+                display: "flex",
+                flexDirection: "column",
+                height: "520px",
+                boxSizing: "border-box",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingBottom: "16px",
+                  borderBottom: "1px solid #1e293b",
+                  gap: "8px",
+                }}
+              >
                 <div>
-                  <h2 className="text-base font-extrabold text-white">
+                  <h2
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: 800,
+                      color: "#ffffff",
+                      margin: 0,
+                    }}
+                  >
                     🧭 안전 내비게이션 AI 법률·솔루션 자문 (20여 개 안전법규 통합)
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "#94a3b8",
+                      marginTop: "4px",
+                      marginBottom: 0,
+                    }}
+                  >
                     질문 전송 시 고객관리대장 N열(사용횟수) 및 O열(잔여횟수)이 실시간 자동 차감됩니다.
                   </p>
                 </div>
-                <span className="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300">
+                <span
+                  style={{
+                    fontSize: "12px",
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    backgroundColor: "#1e293b",
+                    color: "#cbd5e1",
+                    fontWeight: 700,
+                  }}
+                >
                   접속자: {userName || email}
                 </span>
               </div>
 
               {/* 대화 내역 영역 */}
-              <div className="flex-1 overflow-y-auto py-4 space-y-4">
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: "16px 0",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
                 {chatHistory.map((msg, i) => (
                   <div
                     key={i}
-                    className={`flex ${
-                      msg.role === "user" ? "justify-end" : "justify-start"
-                    }`}
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        msg.role === "user" ? "flex-end" : "flex-start",
+                    }}
                   >
                     <div
-                      className={`max-w-2xl rounded-2xl p-4 text-xs md:text-sm whitespace-pre-line leading-relaxed ${
-                        msg.role === "user"
-                          ? "bg-amber-500 text-slate-950 font-bold"
-                          : "bg-slate-950 border border-slate-800 text-slate-200"
-                      }`}
+                      style={{
+                        maxWidth: "680px",
+                        borderRadius: "16px",
+                        padding: "16px",
+                        fontSize: "14px",
+                        whiteSpace: "pre-line",
+                        lineHeight: 1.6,
+                        backgroundColor:
+                          msg.role === "user" ? "#f59e0b" : "#020617",
+                        color: msg.role === "user" ? "#020617" : "#e2e8f0",
+                        fontWeight: msg.role === "user" ? 700 : 500,
+                        border:
+                          msg.role === "user" ? "none" : "1px solid #1e293b",
+                      }}
                     >
                       <div>{msg.content}</div>
-                      <div className="text-[10px] opacity-60 mt-1.5 text-right">
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          opacity: 0.65,
+                          marginTop: "6px",
+                          textAlign: "right",
+                        }}
+                      >
                         {msg.time}
                       </div>
                     </div>
@@ -986,18 +1827,41 @@ export default function SafetyControlTower15Page() {
               </div>
 
               {/* 질문 입력 폼 */}
-              <form onSubmit={handleAskSafetyTower} className="pt-3 border-t border-slate-800 flex gap-2">
+              <form
+                onSubmit={handleAskSafetyTower}
+                style={{
+                  paddingTop: "12px",
+                  borderTop: "1px solid #1e293b",
+                  display: "flex",
+                  gap: "8px",
+                }}
+              >
                 <input
                   type="text"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   placeholder="중대재해처벌법, 산업안전보건법 등 현장 법적 리스크 관련 질문을 입력해 주세요..."
-                  className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:border-amber-500 focus:outline-none"
+                  style={{
+                    ...inputStyle,
+                    flex: 1,
+                  }}
                 />
                 <button
                   type="submit"
                   disabled={loading || remainingQuota <= 0}
-                  className="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-extrabold text-sm transition"
+                  style={{
+                    padding: "12px 24px",
+                    borderRadius: "12px",
+                    backgroundColor: "#f59e0b",
+                    color: "#020617",
+                    fontWeight: 800,
+                    fontSize: "14px",
+                    border: "none",
+                    cursor:
+                      loading || remainingQuota <= 0 ? "not-allowed" : "pointer",
+                    opacity: loading || remainingQuota <= 0 ? 0.5 : 1,
+                    whiteSpace: "nowrap",
+                  }}
                 >
                   {loading ? "처리 중..." : "AI 자문 실행 (1회 차감)"}
                 </button>
@@ -1009,28 +1873,78 @@ export default function SafetyControlTower15Page() {
 
       {/* GAS URL 설정 모달 */}
       {showUrlModal && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4">
-            <h3 className="text-base font-extrabold text-white">
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.78)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            zIndex: 50,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#0f172a",
+              border: "1px solid #334155",
+              borderRadius: "16px",
+              maxWidth: "520px",
+              width: "100%",
+              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "16px",
+                fontWeight: 800,
+                color: "#ffffff",
+                margin: 0,
+              }}
+            >
               Google Apps Script 웹앱 배포 URL 설정
             </h3>
-            <p className="text-xs text-slate-400">
+            <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
               스프레드시트 Apps Script에서 새로 배포한 웹앱 URL을 입력하면 즉시 고객관리대장과 연동됩니다.
             </p>
             <input
               type="text"
               value={tempUrl}
               onChange={(e) => setTempUrl(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white font-mono"
+              style={{
+                ...inputStyle,
+                fontFamily: "monospace",
+                fontSize: "12px",
+              }}
             />
-            <div className="flex justify-end gap-2">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+              }}
+            >
               <button
+                type="button"
                 onClick={() => setShowUrlModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 text-xs text-slate-300"
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "10px",
+                  backgroundColor: "#1e293b",
+                  border: "none",
+                  fontSize: "12px",
+                  color: "#cbd5e1",
+                  cursor: "pointer",
+                }}
               >
                 취소
               </button>
               <button
+                type="button"
                 onClick={() => {
                   if (tempUrl.trim().startsWith("https://script.google.com")) {
                     localStorage.setItem("SCT_15_GAS_URL", tempUrl.trim());
@@ -1042,7 +1956,16 @@ export default function SafetyControlTower15Page() {
                     });
                   }
                 }}
-                className="px-4 py-2 rounded-xl bg-amber-500 text-xs text-slate-950 font-extrabold"
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "10px",
+                  backgroundColor: "#f59e0b",
+                  border: "none",
+                  fontSize: "12px",
+                  color: "#020617",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
               >
                 저장 및 적용
               </button>
