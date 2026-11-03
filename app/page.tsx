@@ -1,3 +1,4 @@
+"use client";
 /**
  * SAFETY CONSULTING 안전 관제탑 Ver 2004 - 프론트엔드 메인 완본
  * 작성 일자: 2026년 11월 3일 14시
