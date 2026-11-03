@@ -1,11 +1,11 @@
 "use client";
 /**
  * SAFETY CONSULTING 안전 관제탑 Ver 2004 - 프론트엔드 메인 완본
- * 작성 일자: 2026년 11월 3일 14시
+ * 작성 일자: 2026년 11월 3일 15시
  */
 import React, { useState, useEffect } from 'react';
 
-const PLAN_DATA = {
+const PLAN_DATA: Record<string, any> = {
   TRIAL: {
     title: 'TRIAL (무료 체험)',
     badge: '사전 검증 특전',
@@ -56,14 +56,14 @@ export default function SafetyControlTowerVer2004() {
     } catch (e) {}
   }, []);
 
-  const [mainStage, setMainStage] = useState(3); // 3: 3단계 관문, 4: 브라우저 점검, 5: AI 관제탑
-  const [subStep, setSubStep] = useState('3-1'); // '3-1', '3-2', '3-3'
-  const [loading, setLoading] = useState(false);
-  const [notice, setNotice] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [mainStage, setMainStage] = useState<number>(3); // 3: 3단계 관문, 4: 브라우저 점검, 5: AI 관제탑
+  const [subStep, setSubStep] = useState<string>('3-1'); // '3-1', '3-2', '3-3'
+  const [loading, setLoading] = useState<boolean>(false);
+  const [notice, setNotice] = useState<string>('');
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
   // 3-1 이메일 입력 상태 (절대 하드코딩 없음 - 빈칸 시작)
-  const [inputEmail, setInputEmail] = useState('');
+  const [inputEmail, setInputEmail] = useState<string>('');
 
   // 3-2 설문지에서 자동 불러온 신청자 데이터 (Auto-fill)
   const [applicant, setApplicant] = useState({
@@ -80,12 +80,12 @@ export default function SafetyControlTowerVer2004() {
   });
 
   // 3-3 라이선스 키 수동 입력 상태
-  const [inputLicenseKey, setInputLicenseKey] = useState('');
-  const [verifiedUser, setVerifiedUser] = useState(null);
+  const [inputLicenseKey, setInputLicenseKey] = useState<string>('');
+  const [verifiedUser, setVerifiedUser] = useState<any>(null);
 
   // 5단계 AI 채팅 상태
-  const [question, setQuestion] = useState('');
-  const [chatHistory, setChatHistory] = useState([
+  const [question, setQuestion] = useState<string>('');
+  const [chatHistory, setChatHistory] = useState<Array<{ role: string; text: string }>>([
     {
       role: 'ai',
       text: '안녕하십니까, 산업안전 분야 20년 경력의 베테랑 전문가 Safety Consulting 안전 관제탑입니다. 중대재해처벌법, 산업안전보건법, 건설기술진흥법, 전기공사업법 등 궁금하신 현장 법규 및 대응 방안을 질문해 주십시오.'
@@ -93,13 +93,13 @@ export default function SafetyControlTowerVer2004() {
   ]);
 
   // 등급 변경 시 기본 기간 자동 조정
-  const handleTierSelect = (newTier) => {
+  const handleTierSelect = (newTier: string) => {
     const defaultPeriod = newTier === 'TRIAL' ? '3일' : (applicant.period === '3일' ? '6개월' : applicant.period);
     setApplicant({ ...applicant, tier: newTier, period: defaultPeriod });
   };
 
   // [STEP 3-1] 신청자 이메일 조회 -> 2단계 설문 데이터 자동 호출
-  const handleCheckEmail = async (e) => {
+  const handleCheckEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setNotice('');
@@ -147,7 +147,7 @@ export default function SafetyControlTowerVer2004() {
   };
 
   // [STEP 3-2] 구독 등급 및 기간 확인 완료 -> 관리대장 (기초) 자동 인입 & 2차 메일 발송
-  const handleSubmitStep32 = async (e) => {
+  const handleSubmitStep32 = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setNotice('');
@@ -179,7 +179,7 @@ export default function SafetyControlTowerVer2004() {
   };
 
   // [STEP 3-3] 3차 이메일로 받은 라이선스 키 수동 입력 검증
-  const handleVerifyKey = async (e) => {
+  const handleVerifyKey = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setNotice('');
@@ -218,7 +218,7 @@ export default function SafetyControlTowerVer2004() {
   };
 
   // [STEP 5] AI 질문 전송
-  const handleAskAI = async (e) => {
+  const handleAskAI = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || loading) return;
     const userQ = question.trim();
@@ -258,7 +258,7 @@ export default function SafetyControlTowerVer2004() {
   };
 
   const currentPlan = PLAN_DATA[applicant.tier] || PLAN_DATA.PRO;
-  const currentPeriodSpec =
+  const currentPeriodSpec: any =
     currentPlan.periods[applicant.period] || Object.values(currentPlan.periods)[0];
 
   return (
@@ -632,7 +632,7 @@ export default function SafetyControlTowerVer2004() {
   );
 }
 
-const styles = {
+const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: '100vh',
     backgroundColor: '#0b1120',
