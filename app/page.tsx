@@ -152,7 +152,7 @@ export default function SafetyControlTowerVer2004() {
     setErrorMsg('');
     setNotice('');
     setLoading(true);
-
+    console.log(applicant);
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
