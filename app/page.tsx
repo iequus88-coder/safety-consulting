@@ -1,13 +1,28 @@
 "use client";
 /**
- * SAFETY CONSULTING 안전 관제탑 Ver 2004 (최종 무결점 복원본) - 프론트엔드 메인 완본
- * - 11월 3일 15시 신형 디자인(a9e8bf5) 100% 복원
- * - 2단계 설문 데이터 100% 자동 호출(Auto-fill)로 고객 재입력 피로감 완전 제거
- * - 3-2 완료 시 관리대장(기초) A~R열 실시간 100% 자동 인입 및 적시 이메일 발송 보장
+ * SAFETY CONSULTING 안전 관제탑 Ver 2008 (최종 결함 핀셋 수리 완본)
+ * - 기존 UI/디자인 100% 원본 사수
+ * - 3-1 이메일 입력란 자동채움(남의 이메일 잔류) 제거 (무조건 빈칸 시작)
+ * - 3-2 사업자등록번호/휴대폰번호 100% 자동 호출 및 '기초관리대장' 6행부터 즉시 인입
+ * - 3-3 엉뚱한 2차 메일 안내 배너 제거 및 하단 마스터키 노출 박스 완전 삭제
+ * - 3-2, 3-3, 4단계 전 구간 '← 이전' 버튼 일괄 적용
+ * - 4단계 완료 시 가짜 채팅창 대신 정식 본 앱(MAIN_APP_URL)으로 즉시 이동
  */
 import React, { useState, useEffect } from 'react';
 
-// 동진 님의 Apps Script 배포 URL (Ver 2004 ~ 2006 호환)
+// ★ [1] 4단계 통과 후 이동할 '정식 구동 메인 앱' 주소 (나중에 도메인 변경 시 여기만 수정)
+const MAIN_APP_URL = "https://safety-consulting-rj8g-ah7er8unh-pilot-7df3.vercel.app/index.html";
+
+// ★ [2] 동진 님만 알고 계실 '비공개 프리패스 마스터키' (화면에는 절대 노출 안 됨 / 3-3 입력창에 타이핑 시 즉시 통과)
+const MASTER_KEYS = [
+  "ST26-XSSP-NPHB",
+  "MASTER-2026-DONGJIN",
+  "MASTER-DJ2026-CONTROL-9999",
+  "ADMIN-PASS-9999",
+  "1111"
+];
+
+// ★ [3] 동진 님의 Apps Script 배포 URL (Apps Script에서 새 배포 시 바뀐 URL이 있다면 아래 큰따옴표 안에 넣어주세요)
 const DEFAULT_GAS_URL =
   "https://script.google.com/macros/s/AKfycbzEZPUneNGAGJZstM9gxh3RL7YMEHoUOrsmroP9L7I_r39kWQ2kF8XcbPWexkB1g_gmCw/exec";
 const SCRIPT_URL = process.env.NEXT_PUBLIC_GAS_URL || DEFAULT_GAS_URL;
@@ -61,14 +76,14 @@ const PLAN_DATA: Record<string, any> = {
   }
 };
 
-export default function SafetyControlTowerVer2004() {
-  const [mainStage, setMainStage] = useState<number>(3); // 3: 3단계 관문, 4: 브라우저 점검, 5: AI 관제탑
+export default function SafetyControlTowerVer2008() {
+  const [mainStage, setMainStage] = useState<number>(3); // 3: 3단계 관문, 4: 브라우저 점검
   const [subStep, setSubStep] = useState<string>('3-1'); // '3-1', '3-2', '3-3'
   const [loading, setLoading] = useState<boolean>(false);
   const [notice, setNotice] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
-  // 3-1 이메일 입력 상태 (빈칸 시작 + URL 파라미터 연동)
+  // 3-1 이메일 입력 상태 (무조건 빈칸으로 시작!)
   const [inputEmail, setInputEmail] = useState<string>('');
 
   // 3-2 설문지에서 자동 불러온 신청자 데이터 (Auto-fill)
@@ -85,48 +100,30 @@ export default function SafetyControlTowerVer2004() {
     depositor: ''
   });
 
-  // 3-3 라이선스 키 수동 입력 상태
+  // 3-3 라이선스 키 수동 입력 상태 (무조건 빈칸으로 시작!)
   const [inputLicenseKey, setInputLicenseKey] = useState<string>('');
   const [verifiedUser, setVerifiedUser] = useState<any>(null);
   const [whaleGuideOpen, setWhaleGuideOpen] = useState<boolean>(false);
-  const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
 
-  // 5단계 AI 채팅 상태
-  const [question, setQuestion] = useState<string>('');
-  const [chatHistory, setChatHistory] = useState<Array<{ role: string; text: string }>>([
-    {
-      role: 'ai',
-      text: '안녕하십니까, 산업안전 분야 20년 경력의 베테랑 전문가 Safety Consulting 안전 관제탑입니다. 중대재해처벌법, 산업안전보건법, 건설기술진흥법, 전기공사업법 등 궁금하신 현장 법규 및 대응 방안을 질문해 주십시오.'
-    }
-  ]);
+  // 정식 본 앱으로 즉시 이동하는 함수
+  const redirectToMainApp = () => {
+    window.location.href = MAIN_APP_URL;
+  };
 
-  // 이메일 링크(?step=3&email=...) 및 브라우저 저장 데이터 자동 복원
+  // URL 파라미터(?step=3&email=...) 처리 (브라우저 로컬스토리지의 타인 이메일 자동 채움 완전 제거!)
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const stepParam = params.get('step');
       const emailParam = params.get('email');
 
-      const savedEmail = localStorage.getItem('sct_email') || '';
-      const savedApplicant = localStorage.getItem('sct_applicant');
-      const savedKey = localStorage.getItem('sct_license_key') || '';
-
-      if (savedApplicant) {
-        try {
-          const parsed = JSON.parse(savedApplicant);
-          setApplicant((prev) => ({ ...prev, ...parsed }));
-        } catch (e) {}
-      }
-
+      // 이메일 링크를 클릭해서 들어온 경우에만 해당 이메일 세팅, 일반 접속 시에는 무조건 빈칸("") 유지
       if (emailParam) {
-        setInputEmail(emailParam.trim());
-        setApplicant((prev) => ({ ...prev, email: emailParam.trim() }));
-      } else if (savedEmail) {
-        setInputEmail(savedEmail);
-      }
-
-      if (savedKey) {
-        setInputLicenseKey(savedKey);
+        const cleanParamEmail = emailParam.trim();
+        setInputEmail(cleanParamEmail);
+        setApplicant((prev) => ({ ...prev, email: cleanParamEmail }));
+      } else {
+        setInputEmail('');
       }
 
       if (stepParam === '3' || stepParam === '3-3') {
@@ -148,7 +145,7 @@ export default function SafetyControlTowerVer2004() {
     setApplicant({ ...applicant, tier: newTier, period: defaultPeriod });
   };
 
-  // [STEP 3-1] 신청자 이메일 조회 -> 2단계 설문 데이터 100% 자동 호출
+  // [STEP 3-1] 신청자 이메일 조회 -> 2단계 설문 데이터(사업자번호/휴대폰 포함) 100% 자동 호출
   const handleCheckEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -175,23 +172,24 @@ export default function SafetyControlTowerVer2004() {
           ? '3일'
           : (info.period && ['1개월', '6개월', '1년'].includes(info.period) ? info.period : '1년');
 
+        // 최상위 data와 하위 info 양쪽 모두에서 사업자번호(bizNo)와 휴대폰번호(phone) 누락 없이 확보
+        const resolvedBizNo = String(info.bizNo || data.bizNo || '개인').trim();
+        const resolvedPhone = String(info.phone || data.phone || '').trim();
+
         const updatedApplicant = {
-          name: info.name || '고객',
-          company: info.company || '개인',
-          bizNo: info.bizNo || '개인',
-          phone: info.phone || '',
+          name: info.name || data.name || '고객',
+          company: info.company || data.company || '개인',
+          bizNo: resolvedBizNo,
+          phone: resolvedPhone,
           email: cleanEmail,
-          role: info.role || '직무: 안전보건 관리책임자',
+          role: info.role || data.role || '직무: 안전보건 관리책임자',
           tier: loadedTier,
           period: loadedPeriod,
-          contactMethod: info.contactMethod || '이메일',
-          depositor: info.depositorName || info.name || ''
+          contactMethod: info.contactMethod || data.contactMethod || '이메일',
+          depositor: info.depositorName || info.name || data.name || ''
         };
 
         setApplicant(updatedApplicant);
-        localStorage.setItem('sct_email', cleanEmail);
-        localStorage.setItem('sct_applicant', JSON.stringify(updatedApplicant));
-
         setNotice(`반갑습니다, ${updatedApplicant.name} 님 (${updatedApplicant.company})! 2단계 설문지에서 입력하신 정보를 모두 불러왔습니다.`);
         setSubStep('3-2');
       } else {
@@ -204,7 +202,7 @@ export default function SafetyControlTowerVer2004() {
     }
   };
 
-  // [STEP 3-2] 구독 등급 및 기간 확인 완료 -> 관리대장 (기초) 100% 자동 인입 & 2차 메일 발송
+  // [STEP 3-2] 구독 등급 및 기간 확인 완료 -> 기초관리대장 100% 자동 인입 & 2차 메일 발송
   const handleSubmitStep32 = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -238,9 +236,6 @@ export default function SafetyControlTowerVer2004() {
 
     setLoading(true);
     try {
-      localStorage.setItem('sct_applicant', JSON.stringify({ ...applicant, email: targetEmail, depositor: finalDepositor }));
-
-      // [핵심 수리] URL Query Parameter + POST Body 동시 전송으로 GAS 리다이렉트 시 데이터 증발 100% 원천 차단!
       const queryStr = new URLSearchParams(payload as Record<string, string>).toString();
       const fullUrl = `${SCRIPT_URL}?${queryStr}&_t=${Date.now()}`;
 
@@ -256,28 +251,30 @@ export default function SafetyControlTowerVer2004() {
       } catch (jsonErr) {}
 
       if (resultData && resultData.ok === false) {
-        setErrorMsg(resultData.error || '관리대장 저장 중 오류가 발생했습니다.');
+        setErrorMsg(resultData.error || '기초관리대장 저장 중 오류가 발생했습니다.');
         setLoading(false);
         return;
       }
 
-      setNotice('구독 신청 내역이 [관리대장 (기초)]에 정상 인입되었으며, 이메일로 2차 안내 메일이 발송되었습니다.');
+      // 3-3 단계 진입 시 상단에 불필요한 2차 메일 발송 문구가 남아있지 않도록 배너 비움
+      setNotice('');
+      setErrorMsg('');
       setSubStep('3-3');
     } catch (err) {
-      // 브라우저 CORS 에러 발생 시에도 GET 방식으로 즉시 백업 호출하여 시트 인입 100% 보장
       try {
         const queryStr = new URLSearchParams(payload as Record<string, string>).toString();
         await fetch(`${SCRIPT_URL}?${queryStr}&_t=${Date.now()}`, { method: 'GET', mode: 'no-cors' });
       } catch (e2) {}
 
-      setNotice('구독 신청이 정상 접수되어 3-3 라이선스 키 입력 화면으로 이동합니다.');
+      setNotice('');
+      setErrorMsg('');
       setSubStep('3-3');
     } finally {
       setLoading(false);
     }
   };
 
-  // [STEP 3-3] 3차 이메일로 받은 라이선스 키 수동 입력 검증
+  // [STEP 3-3] 라이선스 키 수동 입력 검증 (마스터키는 서버 통신 전 즉시 프리패스!)
   const handleVerifyKey = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -289,13 +286,22 @@ export default function SafetyControlTowerVer2004() {
       return;
     }
 
-    const masterKeys = [
-      'ST26-XSSP-NPHB',
-      'MASTER-2026-DONGJIN',
-      'MASTER-DJ2026-CONTROL-9999',
-      'ADMIN-PASS-9999',
-      '1111'
-    ];
+    // ★ 1순위: 동진 님 전용 비공개 마스터키 입력 시 시트 조회 기다리지 않고 즉시 4단계로 프리패스!
+    if (MASTER_KEYS.map((k) => k.toUpperCase()).includes(cleanKey)) {
+      localStorage.setItem('sct_license_key', cleanKey);
+      document.cookie = `sct_license_key=${cleanKey}; path=/; max-age=31536000`;
+      setVerifiedUser({
+        name: applicant.name || '동진 님 (마스터)',
+        company: applicant.company || '안전 관제탑 본부',
+        tier: 'ULTRA',
+        period: '1년',
+        remainQuota: 40000,
+        totalQuota: 40000,
+        expireDate: '2027-12-31'
+      });
+      setMainStage(4);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -321,87 +327,20 @@ export default function SafetyControlTowerVer2004() {
         return;
       }
 
-      if (masterKeys.includes(cleanKey)) {
-        localStorage.setItem('sct_license_key', cleanKey);
-        document.cookie = `sct_license_key=${cleanKey}; path=/; max-age=31536000`;
-        setVerifiedUser({
-          name: applicant.name || '정동진 대표님 (점검모드)',
-          company: applicant.company || '안전 관제탑 본부',
-          tier: 'ULTRA',
-          period: '1년',
-          remainQuota: 40000,
-          totalQuota: 40000,
-          expireDate: '2027-12-31'
-        });
-        setMainStage(4);
-        return;
-      }
-
       setErrorMsg(data.error || '유효하지 않은 라이선스 키이거나 아직 승인 대기 중입니다.');
     } catch (err) {
-      if (masterKeys.includes(cleanKey)) {
-        localStorage.setItem('sct_license_key', cleanKey);
-        setVerifiedUser({
-          name: applicant.name || '정동진 대표님',
-          company: applicant.company || '안전 관제탑 본부',
-          tier: 'ULTRA',
-          period: '1년',
-          remainQuota: 40000,
-          totalQuota: 40000,
-          expireDate: '2027-12-31'
-        });
-        setMainStage(4);
-      } else {
-        setErrorMsg('라이선스 검증 서버와 통신 중 지연이 발생했습니다. 다시 시도해 주십시오.');
-      }
+      setErrorMsg('라이선스 검증 서버와 통신 중 지연이 발생했습니다. 다시 시도해 주십시오.');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  // [STEP 5] AI 질문 전송
-  const handleAskAI = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!question.trim() || loading) return;
-    const userQ = question.trim();
-    setQuestion('');
-
-    setChatHistory((prev) => [...prev, { role: 'user', text: userQ }]);
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userQ, prompt: userQ })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const reply = data.reply || data.answer || data.text || '솔루션 분석이 완료되었습니다.';
-        setChatHistory((prev) => [...prev, { role: 'ai', text: reply }]);
-      } else {
-        throw new Error('Fallback');
-      }
-    } catch (err) {
-      const fallbackReply = `[내 회사의 안전 해결사 <안전 관제탑> 20년 전문가 밀키트 솔루션]\n\n질문하신 "${userQ}"에 대한 핵심 법규 및 현장 실행 지침입니다.\n\n1. 관련 법령 기준: 산업안전보건법 제38조(안전조치) 및 중대재해처벌법 시행령 제4조에 의거, 작업 전 위험성평가 실시 및 사전 작업계획서 수립이 필수입니다.\n2. 현장 즉시 조치사항: 작업지휘자 배치, 근로자 특별안전보건교육 실시, 개인보호구 착용 상태 점검 후 사진 및 서명록을 보관하여 법적 면책 증빙을 확보하시기 바랍니다.`;
-      setChatHistory((prev) => [...prev, { role: 'ai', text: fallbackReply }]);
-    } finally {
-      if (verifiedUser && verifiedUser.remainQuota > 0) {
-        setVerifiedUser({ ...verifiedUser, remainQuota: verifiedUser.remainQuota - 1 });
-      }
       setLoading(false);
     }
   };
 
   const currentPlan = PLAN_DATA[applicant.tier] || PLAN_DATA.STANDARD;
-  const currentPeriodSpec: any =
-    currentPlan.periods[applicant.period] || Object.values(currentPlan.periods)[0];
 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-        {/* 상단 헤더 배너 (전 단계 통일 타이틀: 내 회사의 안전 해결사 < 안전 관제탑 >) */}
+        {/* 상단 헤더 배너 */}
         <header style={styles.header}>
           <div style={styles.topBadgeRow}>
             <span style={styles.goldBadge}>
@@ -410,36 +349,36 @@ export default function SafetyControlTowerVer2004() {
             <div style={styles.stageQuickLinks}>
               <button
                 type="button"
-                onClick={() => { setMainStage(3); setSubStep('3-1'); }}
+                onClick={() => { setNotice(''); setErrorMsg(''); setMainStage(3); setSubStep('3-1'); }}
                 style={mainStage === 3 && subStep === '3-1' ? styles.navPillActive : styles.navPill}
               >
                 3-1. 이메일 확인
               </button>
               <button
                 type="button"
-                onClick={() => { setMainStage(3); setSubStep('3-2'); }}
+                onClick={() => { setNotice(''); setErrorMsg(''); setMainStage(3); setSubStep('3-2'); }}
                 style={mainStage === 3 && subStep === '3-2' ? styles.navPillActive : styles.navPill}
               >
                 3-2. 구독신청·입금
               </button>
               <button
                 type="button"
-                onClick={() => { setMainStage(3); setSubStep('3-3'); }}
+                onClick={() => { setNotice(''); setErrorMsg(''); setMainStage(3); setSubStep('3-3'); }}
                 style={mainStage === 3 && subStep === '3-3' ? styles.navPillActive : styles.navPill}
               >
                 3-3. 라이선스 키 입력
               </button>
               <button
                 type="button"
-                onClick={() => setMainStage(4)}
+                onClick={() => { setNotice(''); setErrorMsg(''); setMainStage(4); }}
                 style={mainStage === 4 ? styles.navPillActive : styles.navPill}
               >
                 4단계. 브라우저 선택
               </button>
               <button
                 type="button"
-                onClick={() => setMainStage(5)}
-                style={mainStage === 5 ? styles.navPillActive : styles.navPill}
+                onClick={redirectToMainApp}
+                style={styles.navPill}
               >
                 5단계. 안전관제탑 본 앱
               </button>
@@ -490,6 +429,8 @@ export default function SafetyControlTowerVer2004() {
                   </label>
                   <input
                     type="email"
+                    name="sct_applicant_email"
+                    autoComplete="off"
                     value={inputEmail}
                     onChange={(e) => setInputEmail(e.target.value)}
                     placeholder="예: safety@gmail.com"
@@ -652,7 +593,7 @@ export default function SafetyControlTowerVer2004() {
                       </div>
                     </div>
 
-                    {/* 무통장 입금 계좌 및 필수 안내문구 (바이블 위치 고정) */}
+                    {/* 무통장 입금 계좌 및 필수 안내문구 */}
                     <div style={styles.bankBox}>
                       <div style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 700, marginBottom: '4px' }}>
                         💳 구독료 무통장 입금 계좌
@@ -697,13 +638,13 @@ export default function SafetyControlTowerVer2004() {
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button
                         type="button"
-                        onClick={() => setSubStep('3-1')}
+                        onClick={() => { setNotice(''); setErrorMsg(''); setSubStep('3-1'); }}
                         style={styles.backBtn}
                       >
                         ← 이전
                       </button>
                       <button type="submit" disabled={loading} style={{ ...styles.goldSubmitBtn, flex: 1, marginTop: 0 }}>
-                        {loading ? '관리대장(기초) 인입 및 이메일 발송 중...' : '구독신청 완료 및 3-3 단계로 이동 →'}
+                        {loading ? '기초관리대장 인입 및 이메일 발송 중...' : '구독신청 완료 및 3-3 단계로 이동 →'}
                       </button>
                     </div>
                   </form>
@@ -711,7 +652,7 @@ export default function SafetyControlTowerVer2004() {
               </div>
             )}
 
-            {/* 3-3 단계: 라이선스 키 입력 */}
+            {/* 3-3 단계: 라이선스 키 입력 (하단 마스터키 노출 완전 제거 & '← 이전' 버튼 추가) */}
             {subStep === '3-3' && (
               <div style={styles.singleCardWrap}>
                 <div style={styles.stepTag}>내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; • STEP 3-3</div>
@@ -729,28 +670,28 @@ export default function SafetyControlTowerVer2004() {
                   </label>
                   <input
                     type="text"
+                    name="sct_license_key_input"
+                    autoComplete="off"
                     value={inputLicenseKey}
                     onChange={(e) => setInputLicenseKey(e.target.value)}
-                    placeholder="예: ST26-XSSP-NPHB"
+                    placeholder="예: ST26-XXXX-XXXX"
                     style={{ ...styles.textInput, fontSize: '18px', fontWeight: 800, letterSpacing: '1px' }}
                     required
                   />
 
-                  <button type="submit" disabled={loading} style={styles.goldSubmitBtn}>
-                    {loading ? '라이선스 키 인증 확인 중...' : '라이선스 키 입력 완료 (4단계로 진입) →'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setNotice(''); setErrorMsg(''); setSubStep('3-2'); }}
+                      style={styles.backBtn}
+                    >
+                      ← 이전
+                    </button>
+                    <button type="submit" disabled={loading} style={{ ...styles.goldSubmitBtn, flex: 1, marginTop: 0 }}>
+                      {loading ? '라이선스 키 인증 확인 중...' : '라이선스 키 입력 완료 (4단계로 진입) →'}
+                    </button>
+                  </div>
                 </form>
-
-                <div style={styles.masterKeyHelper}>
-                  <span>🛠️ <strong>동진 님 점검용 프리패스 키:</strong> 클릭 시 시트 승인 키(<code>ST26-XSSP-NPHB</code>)가 자동 입력됩니다.</span>
-                  <button
-                    type="button"
-                    onClick={() => setInputLicenseKey('ST26-XSSP-NPHB')}
-                    style={styles.smallFillBtn}
-                  >
-                    승인키 자동 채우기
-                  </button>
-                </div>
               </div>
             )}
           </div>
@@ -758,6 +699,7 @@ export default function SafetyControlTowerVer2004() {
 
         {/* =====================================================================
             [MAIN STAGE 4] 4단계 크롬/엣지 vs 네이버 웨일 브라우저 확인 팝업
+            (통과 시 정식 본 앱 URL로 즉시 이동 + 하단 '← 이전' 버튼 추가)
         ===================================================================== */}
         {mainStage === 4 && (
           <div style={styles.singleCardWrap}>
@@ -774,15 +716,12 @@ export default function SafetyControlTowerVer2004() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '24px' }}>
               <button
                 type="button"
-                onClick={() => {
-                  setInputMode('voice');
-                  setMainStage(5);
-                }}
+                onClick={redirectToMainApp}
                 style={styles.chromeChoiceBtn}
               >
                 <div style={{ fontSize: '17px', fontWeight: 800 }}>🎙️ 네, 맞아요! (크롬 / 엣지 사용 중)</div>
                 <div style={{ fontSize: '12px', marginTop: '6px', opacity: 0.9 }}>
-                  원활한 음성+문자 입력 지원 → 5단계 본 화면 즉시 진입
+                  원활한 음성+문자 입력 지원 → 정식 본 화면 즉시 진입
                 </div>
               </button>
 
@@ -810,8 +749,8 @@ export default function SafetyControlTowerVer2004() {
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(window.location.origin);
-                      setNotice('앱 주소가 복사되었습니다. 크롬 브라우저 주소창에 붙여넣기 해주세요.');
+                      navigator.clipboard.writeText(MAIN_APP_URL);
+                      setNotice('정식 본 앱 주소가 복사되었습니다. 크롬 브라우저 주소창에 붙여넣기 해주세요.');
                     }}
                     style={styles.backBtn}
                   >
@@ -819,78 +758,24 @@ export default function SafetyControlTowerVer2004() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setInputMode('text');
-                      setMainStage(5);
-                    }}
+                    onClick={redirectToMainApp}
                     style={{ ...styles.goldSubmitBtn, width: 'auto', marginTop: 0, padding: '12px 24px' }}
                   >
-                    ⌨️ 문자입력 모드로 계속하기 (5단계 본 앱 진입) →
+                    ⌨️ 문자입력 모드로 계속하기 (정식 본 앱 진입) →
                   </button>
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* =====================================================================
-            [MAIN STAGE 5] 5단계 안전관제탑 본 앱
-        ===================================================================== */}
-        {mainStage === 5 && (
-          <div style={styles.panelCard}>
-            <div style={styles.stage5TopBar}>
-              <div>
-                <div style={styles.stepTag}>STEP 5 • 내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; 본 화면</div>
-                <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0, color: '#ffffff' }}>
-                  AI 산업안전 법규·중대재해처벌법 실시간 컨설팅 관제탑
-                </h2>
-              </div>
-              <div style={styles.userStatusBadge}>
-                <div>
-                  👤 <strong>{verifiedUser?.name || applicant.name || '인증 구독자'}</strong> ({verifiedUser?.company || applicant.company || '안전관리팀'})
-                </div>
-                <div style={{ color: '#fbbf24', fontWeight: 800 }}>
-                  등급: {verifiedUser?.tier || applicant.tier} • 잔여 한도: {(verifiedUser?.remainQuota ?? 900).toLocaleString()}회
-                </div>
-              </div>
-            </div>
-
-            <div style={styles.chatContainer}>
-              {chatHistory.map((item, idx) => (
-                <div
-                  key={idx}
-                  style={item.role === 'user' ? styles.userBubble : styles.aiBubble}
-                >
-                  <div style={{ fontSize: '12px', fontWeight: 800, marginBottom: '6px', color: item.role === 'user' ? '#0f172a' : '#fbbf24' }}>
-                    {item.role === 'user' ? '질문자 (현장 질의)' : '🛡️ 안전 관제탑 (20년 안전전문가 솔루션)'}
-                  </div>
-                  <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, fontSize: '14px' }}>
-                    {item.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <form onSubmit={handleAskAI} style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
-              <input
-                type="text"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder={
-                  inputMode === 'voice'
-                    ? '현장 안전보건법규, 위험성평가, 중대재해처벌법 대응 질문을 입력하십시오...'
-                    : '[문자입력 모드] 궁금하신 안전법규 및 현장 대책을 입력해 주십시오...'
-                }
-                style={{ ...styles.textInput, marginBottom: 0, flex: 1 }}
-              />
+            <div style={{ marginTop: '20px' }}>
               <button
-                type="submit"
-                disabled={loading}
-                style={{ ...styles.goldSubmitBtn, width: '170px', marginTop: 0 }}
+                type="button"
+                onClick={() => { setNotice(''); setErrorMsg(''); setMainStage(3); setSubStep('3-3'); }}
+                style={styles.backBtn}
               >
-                {loading ? '분석 중...' : '솔루션 질문 →'}
+                ← 이전 (3-3 라이선스 키 입력 단계로)
               </button>
-            </form>
+            </div>
           </div>
         )}
 
@@ -1192,28 +1077,6 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.6,
     marginBottom: '20px'
   },
-  masterKeyHelper: {
-    marginTop: '22px',
-    paddingTop: '14px',
-    borderTop: '1px dashed #334155',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '8px',
-    fontSize: '12px',
-    color: '#94a3b8'
-  },
-  smallFillBtn: {
-    padding: '7px 12px',
-    borderRadius: '8px',
-    border: '1px solid #475569',
-    backgroundColor: '#0f172a',
-    color: '#fbbf24',
-    fontSize: '12px',
-    fontWeight: 700,
-    cursor: 'pointer'
-  },
   chromeChoiceBtn: {
     padding: '20px 16px',
     borderRadius: '14px',
@@ -1236,53 +1099,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '12px',
     backgroundColor: '#0f172a',
     border: '1px solid #38bdf8'
-  },
-  stage5TopBar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '12px',
-    paddingBottom: '16px',
-    marginBottom: '18px',
-    borderBottom: '1px solid #334155'
-  },
-  userStatusBadge: {
-    backgroundColor: '#0f172a',
-    border: '1px solid #475569',
-    borderRadius: '10px',
-    padding: '10px 14px',
-    fontSize: '13px',
-    lineHeight: 1.5
-  },
-  chatContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    maxHeight: '460px',
-    overflowY: 'auto',
-    padding: '14px',
-    backgroundColor: '#0f172a',
-    borderRadius: '12px',
-    border: '1px solid #334155'
-  },
-  aiBubble: {
-    alignSelf: 'flex-start',
-    maxWidth: '88%',
-    backgroundColor: '#1e293b',
-    border: '1px solid #334155',
-    borderRadius: '12px',
-    padding: '14px 16px',
-    color: '#f8fafc'
-  },
-  userBubble: {
-    alignSelf: 'flex-end',
-    maxWidth: '80%',
-    backgroundColor: '#fbbf24',
-    borderRadius: '12px',
-    padding: '12px 16px',
-    color: '#0f172a',
-    fontWeight: 700
   },
   footer: {
     marginTop: '34px',
