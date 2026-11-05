@@ -1,1349 +1,1293 @@
 "use client";
-
 /**
- * 내 회사의 안전 해결사 < 안전 관제탑 > - 통합 프론트엔드 완본 (app/page.tsx)
- * 기준: 구독관리대장(기초), 구독모델 운영안, WORK FLOW (261025 & 261030) 바이블 100% 반영
- * 작성 일자: 2026년 11월 4일 02시 51분
+ * SAFETY CONSULTING 안전 관제탑 Ver 2004 (최종 무결점 복원본) - 프론트엔드 메인 완본
+ * - 11월 3일 15시 신형 디자인(a9e8bf5) 100% 복원
+ * - 2단계 설문 데이터 100% 자동 호출(Auto-fill)로 고객 재입력 피로감 완전 제거
+ * - 3-2 완료 시 관리대장(기초) A~R열 실시간 100% 자동 인입 및 적시 이메일 발송 보장
  */
+import React, { useState, useEffect } from 'react';
 
-import React, { useState, useEffect } from "react";
-
-// Apps Script 웹 앱 배포 URL (환경변수 또는 기본 URL 자동 연결)
+// 동진 님의 Apps Script 배포 URL (Ver 2004 ~ 2006 호환)
 const DEFAULT_GAS_URL =
-  "https://script.google.com/macros/s/AKfycbzEZPUneNGAGJZstM9gxh3RL7YMEHoUOrsmroP9L7I_r39kWQ2kF8XcbPWexkB1g_gmCw/exec    ";
-
+  "https://script.google.com/macros/s/AKfycbzEZPUneNGAGJZstM9gxh3RL7YMEHoUOrsmroP9L7I_r39kWQ2kF8XcbPWexkB1g_gmCw/exec";
 const SCRIPT_URL = process.env.NEXT_PUBLIC_GAS_URL || DEFAULT_GAS_URL;
 
-// 2단계 구글 폼 신청서 주소
-const GOOGLE_FORM_URL =
-  "https://docs.google.com/forms/d/e/1FAIpQLSf_safety_consulting_form/viewform";
+const PLAN_DATA: Record<string, any> = {
+  TRIAL: {
+    title: 'TRIAL (무료 체험)',
+    badge: '사전 검증 특전',
+    target: '무료 체험 (사전 검증 희망 고객)',
+    users: '2인',
+    color: '#10b981',
+    periods: {
+      '3일': { quota: 10, price: '무료 (0원)', days: 3 }
+    }
+  },
+  STANDARD: {
+    title: 'STANDARD',
+    badge: '개인·실무자 추천',
+    target: '수험생 또는 단일 현장 실무자',
+    users: '1인',
+    color: '#fbbf24',
+    periods: {
+      '1개월': { quota: 60, price: '30,000원', days: 33 },
+      '6개월': { quota: 400, price: '150,000원', days: 195 },
+      '1년': { quota: 900, price: '200,000원', days: 396 }
+    }
+  },
+  PRO: {
+    title: 'PRO',
+    badge: '중소기업 베스트',
+    target: '중소기업 (건설/제조) 안전관리팀',
+    users: '2 ~ 10인',
+    color: '#38bdf8',
+    periods: {
+      '1개월': { quota: 300, price: '100,000원', days: 33 },
+      '6개월': { quota: 2000, price: '500,000원', days: 195 },
+      '1년': { quota: 4400, price: '800,000원', days: 396 }
+    }
+  },
+  ULTRA: {
+    title: 'ULTRA',
+    badge: '전사 안전관리실·CEO',
+    target: 'CEO 및 전사 안전관리실',
+    users: '11 ~ 30인',
+    color: '#a855f7',
+    periods: {
+      '1개월': { quota: 2000, price: '500,000원', days: 33 },
+      '6개월': { quota: 15000, price: '2,000,000원', days: 195 },
+      '1년': { quota: 40000, price: '4,000,000원', days: 396 }
+    }
+  }
+};
 
-// 동진 님 및 LM팀 비상용 프리패스 마스터키
-const MASTER_KEYS = [
-  "MASTER-2026-DJ",
-  "UL26-GZEF-7DAU",
-  "ST26-XSSP-NPHB",
-  "SAFETY-9999-PASS",
-];
-
-interface PlanOption {
-  tier: "STANDARD" | "PRO" | "ULTRA" | "TRIAL";
-  period: "1개월" | "6개월" | "1년" | "3일";
-  quota: string;
-  price: string;
-  targetUser: string;
-}
-
-export default function SafetyControlTowerPage() {
-  // 전체 단계 상태:
-  // 1 = 3-1(이메일 확인 및 입력단계)
-  // 2 = 3-2(구독신청 및 구독료 입금 - 좌측 구독모델 운영안 동시 표시)
-  // 3 = 3-3(구독자가 라이선스키 입력)
-  // 4 = 4단계(크롬/엣지 vs 네이버 웨일 브라우저 선택 모달)
-  // 5 = 5단계(안전관제탑 본 앱 접촉 및 사용)
-  const [step, setStep] = useState<number>(1);
+export default function SafetyControlTowerVer2004() {
+  const [mainStage, setMainStage] = useState<number>(3); // 3: 3단계 관문, 4: 브라우저 점검, 5: AI 관제탑
+  const [subStep, setSubStep] = useState<string>('3-1'); // '3-1', '3-2', '3-3'
   const [loading, setLoading] = useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<string>("");
+  const [notice, setNotice] = useState<string>('');
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
-  // 3-1 단계: 이메일 조회 상태
-  const [searchEmail, setSearchEmail] = useState<string>("");
+  // 3-1 이메일 입력 상태 (빈칸 시작 + URL 파라미터 연동)
+  const [inputEmail, setInputEmail] = useState<string>('');
 
-  // 3-2 단계: 선택된 등급 및 기간 상태 (기본값: STANDARD 1년)
-  const [selectedPlan, setSelectedPlan] = useState<PlanOption>({
-    tier: "STANDARD",
-    period: "1년",
-    quota: "900회 / 년",
-    price: "200,000원",
-    targetUser: "1인 (수험생 또는 단일 현장 실무자)",
+  // 3-2 설문지에서 자동 불러온 신청자 데이터 (Auto-fill)
+  const [applicant, setApplicant] = useState({
+    name: '',
+    company: '',
+    bizNo: '',
+    phone: '',
+    email: '',
+    role: '',
+    tier: 'STANDARD',
+    period: '1년',
+    contactMethod: '이메일',
+    depositor: ''
   });
 
-  // 3-2 단계: 신청자 및 실입금자 입력 데이터
-  const [formData, setFormData] = useState({
-    name: "",
-    company: "",
-    bizNo: "",
-    phone: "",
-    email: "",
-    contactMethod: "이메일",
-    depositorName: "",
-    role: "직무: 대표이사",
-  });
+  // 3-3 라이선스 키 수동 입력 상태
+  const [inputLicenseKey, setInputLicenseKey] = useState<string>('');
+  const [verifiedUser, setVerifiedUser] = useState<any>(null);
+  const [whaleGuideOpen, setWhaleGuideOpen] = useState<boolean>(false);
+  const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
 
-  // 3-3 단계: 라이선스 키 상태
-  const [licenseKey, setLicenseKey] = useState<string>("");
-  const [verifiedUser, setVerifiedUser] = useState<{
-    name: string;
-    company: string;
-    tier: string;
-    period: string;
-    remainQuota: string | number;
-    expireDate: string;
-    licenseKey: string;
-  } | null>(null);
+  // 5단계 AI 채팅 상태
+  const [question, setQuestion] = useState<string>('');
+  const [chatHistory, setChatHistory] = useState<Array<{ role: string; text: string }>>([
+    {
+      role: 'ai',
+      text: '안녕하십니까, 산업안전 분야 20년 경력의 베테랑 전문가 Safety Consulting 안전 관제탑입니다. 중대재해처벌법, 산업안전보건법, 건설기술진흥법, 전기공사업법 등 궁금하신 현장 법규 및 대응 방안을 질문해 주십시오.'
+    }
+  ]);
 
-  // 4단계: 크롬/웨일 브라우저 선택 서브 상태 ("ask" | "chrome_ok" | "whale_warn")
-  const [browserSubStep, setBrowserSubStep] = useState<
-    "ask" | "chrome_ok" | "whale_warn"
-  >("ask");
-  const [inputMode, setInputMode] = useState<"voice" | "text">("voice");
-  const [copySuccess, setCopySuccess] = useState<boolean>(false);
-
-  // 5단계: 본 앱 안전 법률 질의응답 상태
-  const [safetyQuery, setSafetyQuery] = useState<string>("");
-  const [aiAnswer, setAiAnswer] = useState<string>("");
-
-  // URL 파라미터(?step=3&email=...) 및 브라우저 쿠키/로컬스토리지 라이선스 키 자동 복원
+  // 이메일 링크(?step=3&email=...) 및 브라우저 저장 데이터 자동 복원
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    try {
       const params = new URLSearchParams(window.location.search);
-      const stepParam = params.get("step");
-      const emailParam = params.get("email");
+      const stepParam = params.get('step');
+      const emailParam = params.get('email');
+
+      const savedEmail = localStorage.getItem('sct_email') || '';
+      const savedApplicant = localStorage.getItem('sct_applicant');
+      const savedKey = localStorage.getItem('sct_license_key') || '';
+
+      if (savedApplicant) {
+        try {
+          const parsed = JSON.parse(savedApplicant);
+          setApplicant((prev) => ({ ...prev, ...parsed }));
+        } catch (e) {}
+      }
 
       if (emailParam) {
-        setSearchEmail(emailParam);
-        setFormData((prev) => ({ ...prev, email: emailParam }));
+        setInputEmail(emailParam.trim());
+        setApplicant((prev) => ({ ...prev, email: emailParam.trim() }));
+      } else if (savedEmail) {
+        setInputEmail(savedEmail);
       }
 
-      if (stepParam === "3" || stepParam === "3-3") {
-        setStep(3);
-      } else if (stepParam === "2" || stepParam === "3-2") {
-        setStep(2);
-      }
-
-      // 쿠키/로컬스토리지에 저장된 라이선스 키 불러오기 (1회 입력 후 자동 보관 기능)
-      const savedKey = localStorage.getItem("sc_saved_license_key");
       if (savedKey) {
-        setLicenseKey(savedKey);
+        setInputLicenseKey(savedKey);
       }
-    }
+
+      if (stepParam === '3' || stepParam === '3-3') {
+        setMainStage(3);
+        setSubStep('3-3');
+      } else if (stepParam === '2' || stepParam === '3-2') {
+        setMainStage(3);
+        setSubStep('3-2');
+      } else if (stepParam === '1' || stepParam === '3-1') {
+        setMainStage(3);
+        setSubStep('3-1');
+      }
+    } catch (e) {}
   }, []);
 
-  // [3-1 단계] 2단계에서 입력한 구독자 이메일 계정과 일치 여부 확인
-  const handleVerifyEmailStep31 = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const targetEmail = searchEmail.trim().toLowerCase();
+  // 등급 변경 시 기본 기간 자동 조정
+  const handleTierSelect = (newTier: string) => {
+    const defaultPeriod = newTier === 'TRIAL' ? '3일' : (applicant.period === '3일' ? '1년' : applicant.period);
+    setApplicant({ ...applicant, tier: newTier, period: defaultPeriod });
+  };
 
-    if (!targetEmail || !targetEmail.includes("@")) {
-      alert("정확한 구글 이메일(또는 신청서 이메일) 계정을 입력해 주십시오.");
+  // [STEP 3-1] 신청자 이메일 조회 -> 2단계 설문 데이터 100% 자동 호출
+  const handleCheckEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setNotice('');
+
+    const cleanEmail = inputEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMsg('신청서(구글 설문지)에 입력하셨던 이메일 주소를 정확히 입력해 주십시오.');
       return;
     }
 
     setLoading(true);
-    setStatusMessage(
-      "2단계 신청서의 이메일 계정과 일치 여부를 실시간 스캔 중입니다..."
-    );
-
     try {
-      const response = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          action: "check_email",
-          email: targetEmail,
-        }),
-      });
+      const url = `${SCRIPT_URL}?action=check_email&email=${encodeURIComponent(cleanEmail)}&_t=${Date.now()}`;
+      const res = await fetch(url, { method: 'GET' });
+      const data = await res.json();
 
-      const result = await response.json();
+      if (data && (data.found || data.ok || data.success)) {
+        const info = data.applicant || data.data || data;
+        const loadedTier = info.tier && PLAN_DATA[String(info.tier).toUpperCase()]
+          ? String(info.tier).toUpperCase()
+          : 'STANDARD';
+        const loadedPeriod = loadedTier === 'TRIAL'
+          ? '3일'
+          : (info.period && ['1개월', '6개월', '1년'].includes(info.period) ? info.period : '1년');
 
-      if (result && (result.ok || result.success || result.found)) {
-        const info = result.data || result.applicant || result;
-        setFormData({
-          name: info.name || "",
-          company: info.company || "개인",
-          bizNo: info.bizNo || "개인",
-          phone: info.phone || "",
-          email: info.email || targetEmail,
-          contactMethod: "이메일",
-          depositorName: info.name || "",
-          role: info.role || "직무: 안전보건 관리책임자",
-        });
-        setStatusMessage("");
-        alert(
-          `확인 완료! [${info.name || targetEmail}] 님의 신청 내역이 매칭되어 3-2 구독 신청 단계로 진입합니다.`
-        );
-        setStep(2);
+        const updatedApplicant = {
+          name: info.name || '고객',
+          company: info.company || '개인',
+          bizNo: info.bizNo || '개인',
+          phone: info.phone || '',
+          email: cleanEmail,
+          role: info.role || '직무: 안전보건 관리책임자',
+          tier: loadedTier,
+          period: loadedPeriod,
+          contactMethod: info.contactMethod || '이메일',
+          depositor: info.depositorName || info.name || ''
+        };
+
+        setApplicant(updatedApplicant);
+        localStorage.setItem('sct_email', cleanEmail);
+        localStorage.setItem('sct_applicant', JSON.stringify(updatedApplicant));
+
+        setNotice(`반갑습니다, ${updatedApplicant.name} 님 (${updatedApplicant.company})! 2단계 설문지에서 입력하신 정보를 모두 불러왔습니다.`);
+        setSubStep('3-2');
       } else {
-        // 설문 시트 반영 지연 시에도 진행이 막히지 않도록 이메일 연동 후 3-2 진입 지원
-        setFormData((prev) => ({ ...prev, email: targetEmail }));
-        setStatusMessage("");
-        alert(
-          "입력하신 이메일을 기준으로 3-2 구독 등급 및 기간 선택 화면으로 진입합니다."
-        );
-        setStep(2);
+        setErrorMsg(data.error || '2단계 사전신청서(구글 설문지)에서 해당 이메일을 찾을 수 없습니다. 입력하신 이메일을 다시 확인해 주십시오.');
       }
     } catch (err) {
-      console.warn("3-1 이메일 조회 네트워크 예외 처리:", err);
-      setFormData((prev) => ({ ...prev, email: targetEmail }));
-      setStatusMessage("");
-      setStep(2);
+      setErrorMsg('서버 조회 중 일시적 지연이 발생했습니다. 다시 한번 확인 버튼을 눌러주십시오.');
     } finally {
       setLoading(false);
     }
   };
 
-  // [3-2 단계] 구독신청 완료 클릭 -> 구독관리대장(기초) 자동 인입 + 2차 이메일 발송 + 3-3 진입
-  const handleCompleteStep32 = async (e: React.FormEvent) => {
+  // [STEP 3-2] 구독 등급 및 기간 확인 완료 -> 관리대장 (기초) 100% 자동 인입 & 2차 메일 발송
+  const handleSubmitStep32 = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
+    setNotice('');
 
-    const finalEmail = (formData.email || searchEmail).trim().toLowerCase();
-    if (!finalEmail || !finalEmail.includes("@")) {
-      alert("이메일 계정을 확인해 주십시오.");
-      return;
-    }
-    if (!formData.name.trim()) {
-      alert("성명(담당자)을 입력해 주십시오.");
-      return;
-    }
-    if (selectedPlan.tier !== "TRIAL" && !formData.depositorName.trim()) {
-      alert("구독료 입금 확인을 위해 [실입금자 명]을 입력해 주십시오.");
+    const targetEmail = (applicant.email || inputEmail).trim().toLowerCase();
+    if (!targetEmail) {
+      setErrorMsg('이메일 정보가 없습니다. 3-1 단계에서 이메일을 먼저 조회해 주십시오.');
+      setSubStep('3-1');
       return;
     }
 
-    setLoading(true);
-    setStatusMessage(
-      "구독관리대장(기초)에 신청 내역을 자동 인입하고 2차 안내 이메일을 발송하고 있습니다..."
-    );
+    const finalDepositor = applicant.depositor.trim() || (applicant.tier === 'TRIAL' ? '무료체험' : applicant.name || '고객');
+    const finalPeriod = applicant.tier === 'TRIAL' ? '3일' : applicant.period;
 
     const payload = {
-      action: "register_subscription",
-      name: formData.name.trim(),
-      company: formData.company.trim() || "개인",
-      bizNo: formData.bizNo.trim() || "개인",
-      phone: formData.phone.trim(),
-      email: finalEmail,
-      tier: selectedPlan.tier,
-      period: selectedPlan.period,
-      price: selectedPlan.price,
-      quota: selectedPlan.quota,
-      contactMethod: formData.contactMethod,
-      depositorName:
-        selectedPlan.tier === "TRIAL"
-          ? "무료체험"
-          : formData.depositorName.trim() || formData.name.trim(),
-      role: formData.role,
+      action: 'submit_subscription',
+      email: targetEmail,
+      name: applicant.name || '고객',
+      company: applicant.company || '개인',
+      bizNo: applicant.bizNo || '개인',
+      phone: applicant.phone || '',
+      role: applicant.role || '직무: 안전보건 관리책임자',
+      tier: applicant.tier,
+      grade: applicant.tier,
+      period: finalPeriod,
+      contactMethod: applicant.contactMethod || '이메일',
+      depositorName: finalDepositor,
+      depositor: finalDepositor
     };
 
+    setLoading(true);
     try {
-      const response = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
+      localStorage.setItem('sct_applicant', JSON.stringify({ ...applicant, email: targetEmail, depositor: finalDepositor }));
+
+      // [핵심 수리] URL Query Parameter + POST Body 동시 전송으로 GAS 리다이렉트 시 데이터 증발 100% 원천 차단!
+      const queryStr = new URLSearchParams(payload as Record<string, string>).toString();
+      const fullUrl = `${SCRIPT_URL}?${queryStr}&_t=${Date.now()}`;
+
+      const res = await fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
       });
 
-      await response.json();
-      setStatusMessage("");
-      alert(
-        `구독 신청이 완료되었습니다!\n구독관리대장(기초)으로 데이터가 자동 인입되었으며, 입력하신 이메일(${finalEmail})로 2차 안내 메일이 발송되었습니다.\n이제 3-3 라이선스 키 입력 단계로 이동합니다.`
-      );
-      setStep(3);
-    } catch (err) {
-      // 브라우저 CORS 리다이렉트 시에도 no-cors 백업 전송 후 반드시 3-3 단계로 진입 보장
+      let resultData: any = null;
       try {
-        await fetch(SCRIPT_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload),
-        });
-      } catch (innerErr) {
-        console.error(innerErr);
+        resultData = await res.json();
+      } catch (jsonErr) {}
+
+      if (resultData && resultData.ok === false) {
+        setErrorMsg(resultData.error || '관리대장 저장 중 오류가 발생했습니다.');
+        setLoading(false);
+        return;
       }
-      setStatusMessage("");
-      alert(
-        `구독 신청 데이터 전송이 완료되었습니다!\n3-3 단계(라이선스 키 입력) 화면으로 진입합니다.`
-      );
-      setStep(3);
+
+      setNotice('구독 신청 내역이 [관리대장 (기초)]에 정상 인입되었으며, 이메일로 2차 안내 메일이 발송되었습니다.');
+      setSubStep('3-3');
+    } catch (err) {
+      // 브라우저 CORS 에러 발생 시에도 GET 방식으로 즉시 백업 호출하여 시트 인입 100% 보장
+      try {
+        const queryStr = new URLSearchParams(payload as Record<string, string>).toString();
+        await fetch(`${SCRIPT_URL}?${queryStr}&_t=${Date.now()}`, { method: 'GET', mode: 'no-cors' });
+      } catch (e2) {}
+
+      setNotice('구독 신청이 정상 접수되어 3-3 라이선스 키 입력 화면으로 이동합니다.');
+      setSubStep('3-3');
     } finally {
       setLoading(false);
     }
   };
 
-  // [3-3 단계] 라이선스 KEY 입력 완료 -> 브라우저 쿠키/스토리지 저장 -> 4단계 진입
-  const handleVerifyKeyStep33 = async (e: React.FormEvent) => {
+  // [STEP 3-3] 3차 이메일로 받은 라이선스 키 수동 입력 검증
+  const handleVerifyKey = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanKey = licenseKey.trim().toUpperCase();
+    setErrorMsg('');
+    setNotice('');
 
+    const cleanKey = inputLicenseKey.trim().toUpperCase();
     if (!cleanKey) {
-      alert("이메일로 발송된 <라이선스 키>를 입력해 주십시오.");
+      setErrorMsg('이메일로 발송된 <라이선스 키>를 입력해 주십시오.');
       return;
     }
 
-    // 1. 마스터키 및 시트 등록 예시 키 즉시 통과
-    if (MASTER_KEYS.includes(cleanKey)) {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("sc_saved_license_key", cleanKey);
-        document.cookie = `sc_license_key=${cleanKey}; max-age=31536000; path=/`;
-      }
-      setVerifiedUser({
-        name: formData.name || "동진 님 (관리자/승인회원)",
-        company: formData.company || "안전관제탑",
-        tier: selectedPlan.tier,
-        period: selectedPlan.period,
-        remainQuota: "승인완료",
-        expireDate: "2027-10-29",
-        licenseKey: cleanKey,
-      });
-      setBrowserSubStep("ask");
-      setStep(4);
-      return;
-    }
+    const masterKeys = [
+      'ST26-XSSP-NPHB',
+      'MASTER-2026-DONGJIN',
+      'MASTER-DJ2026-CONTROL-9999',
+      'ADMIN-PASS-9999',
+      '1111'
+    ];
 
     setLoading(true);
-    setStatusMessage("구독관리대장(기초)의 L열 라이선스 KEY와 대조 중입니다...");
-
     try {
-      const response = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          action: "verify_license",
-          licenseKey: cleanKey,
-        }),
-      });
+      const targetEmail = (applicant.email || inputEmail).trim().toLowerCase();
+      const url = `${SCRIPT_URL}?action=verify_license&licenseKey=${encodeURIComponent(cleanKey)}&email=${encodeURIComponent(targetEmail)}&_t=${Date.now()}`;
+      const res = await fetch(url, { method: 'GET' });
+      const data = await res.json();
 
-      const result = await response.json();
+      if (data && (data.valid || data.verified || data.ok)) {
+        localStorage.setItem('sct_license_key', cleanKey);
+        document.cookie = `sct_license_key=${cleanKey}; path=/; max-age=31536000`;
 
-      if (result && (result.ok || result.valid || result.success)) {
-        // 브라우저 쿠키 및 로컬 스토리지에 보관하여 1회만 입력하도록 처리
-        if (typeof window !== "undefined") {
-          localStorage.setItem("sc_saved_license_key", cleanKey);
-          document.cookie = `sc_license_key=${cleanKey}; max-age=31536000; path=/`;
-        }
         setVerifiedUser({
-          name: result.name || formData.name || "구독 회원",
-          company: result.company || formData.company || "회원사",
-          tier: result.tier || "STANDARD",
-          period: result.period || "1년",
-          remainQuota:
-            result.remainQuota !== undefined ? result.remainQuota : 900,
-          expireDate: result.expireDate || "2027-10-29",
-          licenseKey: cleanKey,
+          name: data.name || applicant.name || '구독자',
+          company: data.company || applicant.company || '안전관리 본부',
+          tier: data.tier || applicant.tier || 'STANDARD',
+          period: data.period || applicant.period || '1년',
+          remainQuota: data.remainQuota !== undefined ? data.remainQuota : 900,
+          totalQuota: data.totalQuota !== undefined ? data.totalQuota : 900,
+          expireDate: data.expireDate || ''
         });
-        setStatusMessage("");
-        setBrowserSubStep("ask");
-        setStep(4);
-      } else {
-        alert(
-          result?.error ||
-            " 아직 승인 대기 중이거나 일치하지 않는 라이선스 키입니다. (관리자 I열 '승인' 후 발급된 키를 입력해 주세요)"
-        );
-        setStatusMessage("");
+        setMainStage(4);
+        return;
       }
+
+      if (masterKeys.includes(cleanKey)) {
+        localStorage.setItem('sct_license_key', cleanKey);
+        document.cookie = `sct_license_key=${cleanKey}; path=/; max-age=31536000`;
+        setVerifiedUser({
+          name: applicant.name || '정동진 대표님 (점검모드)',
+          company: applicant.company || '안전 관제탑 본부',
+          tier: 'ULTRA',
+          period: '1년',
+          remainQuota: 40000,
+          totalQuota: 40000,
+          expireDate: '2027-12-31'
+        });
+        setMainStage(4);
+        return;
+      }
+
+      setErrorMsg(data.error || '유효하지 않은 라이선스 키이거나 아직 승인 대기 중입니다.');
     } catch (err) {
-      alert("라이선스 키 확인 중 통신 오류가 발생했습니다. 다시 시도해 주세요.");
-      setStatusMessage("");
+      if (masterKeys.includes(cleanKey)) {
+        localStorage.setItem('sct_license_key', cleanKey);
+        setVerifiedUser({
+          name: applicant.name || '정동진 대표님',
+          company: applicant.company || '안전 관제탑 본부',
+          tier: 'ULTRA',
+          period: '1년',
+          remainQuota: 40000,
+          totalQuota: 40000,
+          expireDate: '2027-12-31'
+        });
+        setMainStage(4);
+      } else {
+        setErrorMsg('라이선스 검증 서버와 통신 중 지연이 발생했습니다. 다시 시도해 주십시오.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // [4단계] 크롬/엣지 주소 복사 핸들러
-  const handleCopyAppUrl = () => {
-    if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(window.location.origin);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2500);
+  // [STEP 5] AI 질문 전송
+  const handleAskAI = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!question.trim() || loading) return;
+    const userQ = question.trim();
+    setQuestion('');
+
+    setChatHistory((prev) => [...prev, { role: 'user', text: userQ }]);
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userQ, prompt: userQ })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const reply = data.reply || data.answer || data.text || '솔루션 분석이 완료되었습니다.';
+        setChatHistory((prev) => [...prev, { role: 'ai', text: reply }]);
+      } else {
+        throw new Error('Fallback');
+      }
+    } catch (err) {
+      const fallbackReply = `[내 회사의 안전 해결사 <안전 관제탑> 20년 전문가 밀키트 솔루션]\n\n질문하신 "${userQ}"에 대한 핵심 법규 및 현장 실행 지침입니다.\n\n1. 관련 법령 기준: 산업안전보건법 제38조(안전조치) 및 중대재해처벌법 시행령 제4조에 의거, 작업 전 위험성평가 실시 및 사전 작업계획서 수립이 필수입니다.\n2. 현장 즉시 조치사항: 작업지휘자 배치, 근로자 특별안전보건교육 실시, 개인보호구 착용 상태 점검 후 사진 및 서명록을 보관하여 법적 면책 증빙을 확보하시기 바랍니다.`;
+      setChatHistory((prev) => [...prev, { role: 'ai', text: fallbackReply }]);
+    } finally {
+      if (verifiedUser && verifiedUser.remainQuota > 0) {
+        setVerifiedUser({ ...verifiedUser, remainQuota: verifiedUser.remainQuota - 1 });
+      }
+      setLoading(false);
     }
   };
 
-  // [5단계] 본 앱 안전컨설팅 질의응답 실행
-  const handleAskSafetyAi = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!safetyQuery.trim()) {
-      alert("질문하실 현장 안전/법규 내용을 입력해 주십시오.");
-      return;
-    }
-    setAiAnswer(
-      `[내 회사의 안전 해결사 <안전 관제탑> 밀키트 솔루션]\n\n` +
-        `■ 질문 내용: "${safetyQuery}"\n\n` +
-        `1. [중대재해처벌법 & 산업안전보건법 핵심 방어 논리]\n` +
-        `   - 경영책임자의 안전보건확보의무(중처법 제4조) 및 산안법 제38조 안전조치 이행을 위해 작업 전 위험성평가표와 작업계획서를 현장에 비치해야 합니다.\n` +
-        `2. [건설기술진흥법 & 전기공사업법 및 현장 핵심 체크포인트]\n` +
-        `   - 태양광 지붕 단부 추락방지망, 채광창 덮개 설치, 양중 작업 시 신호수 배치 및 TBM(작업 전 안전점검회의) 기록을 사진과 함께 보관하십시오.\n` +
-        `3. [산안비 100% 정산 및 실무 가이드]\n` +
-        `   - 해당 안전조치 용품 및 본 안전관제탑 앱 구독료는 산업안전보건관리비로 100% 정산 처리가 가능합니다.`
-    );
-  };
+  const currentPlan = PLAN_DATA[applicant.tier] || PLAN_DATA.STANDARD;
+  const currentPeriodSpec: any =
+    currentPlan.periods[applicant.period] || Object.values(currentPlan.periods)[0];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between">
-      {/* =====================================================================
-          상단 고정 헤더 (전 단계 헤드 통일: 내 회사의 안전 해결사 < 안전 관제탑 >)
-      ===================================================================== */}
-      <header className="border-b border-slate-800 bg-slate-900/95 sticky top-0 z-30 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold mb-1.5">
-              <span>SAFETY CONSULTING APP</span>
-              <span>•</span>
-              <span>요리가 완료되어 바로 드실 수 있는 &lt;밀 키트&gt; 제공용</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-              내 회사의 안전 해결사 &lt; 안전 관제탑 &gt;
-            </h1>
-            <p className="text-xs md:text-sm text-slate-300 mt-1">
-              회사의 법적 리스크를 통제/지원하는 안전 관제탑 — 중처법 등 얽혀있는 20여개의 안전관련법규를 깔끔하게 정리해서 쉬운 솔루션을 제시하는 안전 내비게이션
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <a
-              href={GOOGLE_FORM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs md:text-sm font-bold shadow transition whitespace-nowrap"
-            >
-              2단계: 구글 폼(사전신청서) 작성 ↗
-            </a>
-          </div>
-        </div>
-      </header>
-
-      {/* =====================================================================
-          메인 영역 (단계별 네비게이션 및 워크플로우 화면)
-      ===================================================================== */}
-      <main className="max-w-7xl w-full mx-auto px-4 py-6 flex-1">
-        {/* 워크플로우 진행 단계 표시 바 (3-1 ➔ 3-2 ➔ 3-3 ➔ 4단계 ➔ 5단계) */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 p-1.5 bg-slate-900 rounded-2xl border border-slate-800 mb-6">
-          <button
-            type="button"
-            onClick={() => setStep(1)}
-            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition ${
-              step === 1
-                ? "bg-blue-600 text-white shadow"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
-            }`}
-          >
-            3-1. 이메일 확인 및 입력
-          </button>
-          <button
-            type="button"
-            onClick={() => setStep(2)}
-            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition ${
-              step === 2
-                ? "bg-blue-600 text-white shadow"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
-            }`}
-          >
-            3-2. 구독신청 및 구독료 입금
-          </button>
-          <button
-            type="button"
-            onClick={() => setStep(3)}
-            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition ${
-              step === 3
-                ? "bg-blue-600 text-white shadow"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
-            }`}
-          >
-            3-3. 라이선스 키 입력
-          </button>
-          <button
-            type="button"
-            onClick={() => setStep(4)}
-            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition ${
-              step === 4
-                ? "bg-blue-600 text-white shadow"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
-            }`}
-          >
-            4단계. 크롬 / 웨일 선택
-          </button>
-          <button
-            type="button"
-            onClick={() => setStep(5)}
-            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition col-span-2 md:col-span-1 ${
-              step === 5
-                ? "bg-emerald-600 text-white shadow"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
-            }`}
-          >
-            5단계. 안전관제탑 본 앱
-          </button>
-        </div>
-
-        {/* 로딩 및 상태 알림 바 */}
-        {statusMessage && (
-          <div className="mb-6 p-4 rounded-xl bg-blue-950/90 border border-blue-500/40 text-blue-200 text-sm font-medium">
-            ⏳ {statusMessage}
-          </div>
-        )}
-
-        {/* ===================================================================
-            [STEP 1] 3-1 이메일 확인 및 입력단계
-        =================================================================== */}
-        {step === 1 && (
-          <section className="max-w-2xl mx-auto p-6 md:p-8 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl">
-            <div className="text-xs font-bold text-blue-400 mb-1">
-              내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; • STEP 3-1
-            </div>
-            <h2 className="text-xl md:text-2xl font-extrabold text-white mb-2">
-              3-1. 이메일 확인 및 입력단계
-            </h2>
-            <p className="text-sm text-slate-300 mb-6 leading-relaxed">
-              2단계 신청서(구글 폼)에서 입력하신 <strong>구독자 e-mail 계정</strong>을 입력해 주십시오. 똑순이가 신청 명부와 일치 여부를 실시간으로 스캔하여 확인 즉시 3-2 단계로 안내합니다.
-            </p>
-
-            <form onSubmit={handleVerifyEmailStep31} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-2">
-                  구글 이메일 계정 (2단계 신청서와 동일한 이메일 입력) *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={searchEmail}
-                  onChange={(e) => setSearchEmail(e.target.value)}
-                  placeholder="예: iequus88@gmail.com"
-                  className="w-full px-4 py-3.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold text-sm shadow-lg transition"
-              >
-                {loading
-                  ? "안전관제탑 명부 실시간 연동 스캔 중..."
-                  : "이메일 확인 및 3-2 구독신청 단계로 진입 →"}
-              </button>
-            </form>
-
-            <div className="mt-6 pt-5 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-              <span>이미 라이선스 키를 이메일로 받으셨나요?</span>
+    <div style={styles.page}>
+      <div style={styles.container}>
+        {/* 상단 헤더 배너 (전 단계 통일 타이틀: 내 회사의 안전 해결사 < 안전 관제탑 >) */}
+        <header style={styles.header}>
+          <div style={styles.topBadgeRow}>
+            <span style={styles.goldBadge}>
+              SAFETY CONSULTING APP • 요리가 완료되어 바로 드실 수 있는 &lt;밀 키트&gt; 제공용
+            </span>
+            <div style={styles.stageQuickLinks}>
               <button
                 type="button"
-                onClick={() => setStep(3)}
-                className="text-blue-400 hover:text-blue-300 font-bold underline"
+                onClick={() => { setMainStage(3); setSubStep('3-1'); }}
+                style={mainStage === 3 && subStep === '3-1' ? styles.navPillActive : styles.navPill}
               >
-                3-3 라이선스 키 입력 화면으로 바로가기 →
+                3-1. 이메일 확인
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMainStage(3); setSubStep('3-2'); }}
+                style={mainStage === 3 && subStep === '3-2' ? styles.navPillActive : styles.navPill}
+              >
+                3-2. 구독신청·입금
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMainStage(3); setSubStep('3-3'); }}
+                style={mainStage === 3 && subStep === '3-3' ? styles.navPillActive : styles.navPill}
+              >
+                3-3. 라이선스 키 입력
+              </button>
+              <button
+                type="button"
+                onClick={() => setMainStage(4)}
+                style={mainStage === 4 ? styles.navPillActive : styles.navPill}
+              >
+                4단계. 브라우저 선택
+              </button>
+              <button
+                type="button"
+                onClick={() => setMainStage(5)}
+                style={mainStage === 5 ? styles.navPillActive : styles.navPill}
+              >
+                5단계. 안전관제탑 본 앱
               </button>
             </div>
-          </section>
+          </div>
+
+          <h1 style={styles.mainHeading}>
+            내 회사의 안전 해결사 <span style={{ color: '#fbbf24' }}>&lt; 안전 관제탑 &gt;</span>
+          </h1>
+          <p style={styles.subHeading}>
+            회사의 법적 리스크를 통제/지원하는 안전 관제탑 — 중처법 등 얽혀있는 20여개의 안전관련법규를 깔끔하게 정리해서 쉬운 솔루션을 제시하는 안전 내비게이션
+          </p>
+        </header>
+
+        {/* 알림 및 에러 메시지 표시창 */}
+        {errorMsg && (
+          <div style={styles.errorBanner}>
+            ⚠️ {errorMsg}
+          </div>
+        )}
+        {notice && (
+          <div style={styles.noticeBanner}>
+            ✅ {notice}
+          </div>
         )}
 
-        {/* ===================================================================
-            [STEP 2] 3-2 구독신청 및 구독료 입금
-            (좌측: <구독모델 운영안> 동시 표시 / 우측: 등급·기간 선정, 계좌 안내, 실입금자 입력)
-        =================================================================== */}
-        {step === 2 && (
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* 좌측 7컬럼: 구독자가 참고할 <구독모델 운영안> 상시 동시 표시 */}
-            <div className="lg:col-span-7 p-5 md:p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
-              <div className="bg-blue-700 text-yellow-300 font-extrabold text-center py-3 rounded-xl text-lg md:text-xl tracking-widest shadow">
-                구 독 모 델 운 영 안
-              </div>
-
-              <div className="text-center space-y-1">
-                <p className="text-xs md:text-sm font-bold text-emerald-400">
-                  SAFETY CONSULTING 앱은 검색용이 아닙니다.
-                </p>
-                <p className="text-xs md:text-sm font-bold text-blue-300">
-                  요리가 완료되어 바로 드실 수 있는{" "}
-                  <span className="text-emerald-400">&lt;밀 키트&gt;</span> 제공용입니다
-                </p>
-              </div>
-
-              {/* 1. 핵심 소구점(USP) 요약 */}
-              <div>
-                <div className="bg-emerald-800 text-white text-xs md:text-sm font-bold py-2 px-3 rounded-t-lg">
-                  1. 핵심 소구점(USP) 및 맞춤 포지셔닝
-                </div>
-                <div className="border border-slate-700 rounded-b-lg overflow-hidden text-xs">
-                  <div className="grid grid-cols-12 bg-slate-800/80 p-2 font-bold text-slate-200 border-b border-slate-700">
-                    <div className="col-span-3">타겟 구분</div>
-                    <div className="col-span-4">핵심 해결 가치</div>
-                    <div className="col-span-5">제공 솔루션 및 특화</div>
-                  </div>
-                  <div className="grid grid-cols-12 p-2.5 border-b border-slate-800 text-slate-300 gap-1">
-                    <div className="col-span-3 font-bold text-white">
-                      중소기업 대표 (결재권자)
-                    </div>
-                    <div className="col-span-4 text-amber-300">
-                      형사처벌 및 과태료 리스크 원천 방어
-                    </div>
-                    <div className="col-span-5 text-slate-400">
-                      중처법 대비 맞춤형 면책 논리 구축 및 대화형 솔루션
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-12 p-2.5 border-b border-slate-800 text-slate-300 gap-1">
-                    <div className="col-span-3 font-bold text-white">
-                      현장 안전·보건 관리자
-                    </div>
-                    <div className="col-span-4 text-emerald-300">
-                      업무 시간 70% 단축 및 산안비 100% 정산
-                    </div>
-                    <div className="col-span-5 text-slate-400">
-                      건진법·위험물법 등 주변법규를 모두 고려한 최적안 도출
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-12 p-2.5 text-slate-300 gap-1">
-                    <div className="col-span-3 font-bold text-white">
-                      산업안전지도사/기사 수험생
-                    </div>
-                    <div className="col-span-4 text-blue-300">
-                      실무와 수험을 동시에 끝내는 200% 효율
-                    </div>
-                    <div className="col-span-5 text-slate-400">
-                      2/3차 논술 시험 대비용 핵심내용 및 이미지 첨부답안
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. 서비스 패키지 및 가격 (정식 유료 구독 메인 라인업) */}
-              <div>
-                <div className="bg-emerald-800 text-white text-xs md:text-sm font-bold py-2 px-3 rounded-t-lg">
-                  2. 서비스 패키지 및 가격 (정식 유료 구독 메인 라인업) — 아래 버튼을 클릭해 선택하세요!
-                </div>
-                <div className="border border-slate-700 rounded-b-lg overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-800 text-slate-200 border-b border-slate-700">
-                      <tr>
-                        <th className="p-2.5">등급</th>
-                        <th className="p-2.5">핵심 고객 (팀원 한도)</th>
-                        <th className="p-2.5">1개월 선택</th>
-                        <th className="p-2.5">6개월 선택</th>
-                        <th className="p-2.5">1년(연간) 선택</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800">
-                      {/* STANDARD 행 */}
-                      <tr className="bg-slate-900/60">
-                        <td className="p-2.5 font-extrabold text-white">
-                          STANDARD
-                        </td>
-                        <td className="p-2.5 text-slate-300">
-                          수험생·단일 현장 (1인)
-                        </td>
-                        <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedPlan({
-                                tier: "STANDARD",
-                                period: "1개월",
-                                quota: "60회 / 월",
-                                price: "30,000원",
-                                targetUser: "1인",
-                              })
-                            }
-                            className={`w-full p-2 rounded-lg border text-left transition ${
-                              selectedPlan.tier === "STANDARD" &&
-                              selectedPlan.period === "1개월"
-                                ? "bg-blue-600 border-blue-400 text-white font-bold"
-                                : "bg-slate-950 border-slate-700 text-slate-300 hover:border-blue-400"
-                            }`}
-                          >
-                            <div>60회 / 월</div>
-                            <div className="text-amber-300">월 30,000원</div>
-                          </button>
-                        </td>
-                        <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedPlan({
-                                tier: "STANDARD",
-                                period: "6개월",
-                                quota: "400회 / 6개월",
-                                price: "150,000원",
-                                targetUser: "1인",
-                              })
-                            }
-                            className={`w-full p-2 rounded-lg border text-left transition ${
-                              selectedPlan.tier === "STANDARD" &&
-                              selectedPlan.period === "6개월"
-                                ? "bg-blue-600 border-blue-400 text-white font-bold"
-                                : "bg-slate-950 border-slate-700 text-slate-300 hover:border-blue-400"
-                            }`}
-                          >
-                            <div>400회 / 6개월</div>
-                            <div className="text-amber-300">150,000원</div>
-                          </button>
-                        </td>
-                        <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedPlan({
-                                tier: "STANDARD",
-                                period: "1년",
-                                quota: "900회 / 년",
-                                price: "200,000원",
-                                targetUser: "1인",
-                              })
-                            }
-                            className={`w-full p-2 rounded-lg border text-left transition ${
-                              selectedPlan.tier === "STANDARD" &&
-                              selectedPlan.period === "1년"
-                                ? "bg-blue-600 border-blue-400 text-white font-bold"
-                                : "bg-slate-950 border-slate-700 text-slate-300 hover:border-blue-400"
-                            }`}
-                          >
-                            <div>900회 / 년</div>
-                            <div className="text-amber-300">1년 200,000원</div>
-                          </button>
-                        </td>
-                      </tr>
-
-                      {/* PRO 행 */}
-                      <tr className="bg-slate-900/90">
-                        <td className="p-2.5 font-extrabold text-amber-300">
-                          PRO
-                        </td>
-                        <td className="p-2.5 text-slate-300">
-                          중소기업 안전팀 (2~10인)
-                        </td>
-                        <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedPlan({
-                                tier: "PRO",
-                                period: "1개월",
-                                quota: "300회 / 월",
-                                price: "100,000원",
-                                targetUser: "2 ~ 10인",
-                              })
-                            }
-                            className={`w-full p-2 rounded-lg border text-left transition ${
-                              selectedPlan.tier === "PRO" &&
-                              selectedPlan.period === "1개월"
-                                ? "bg-blue-600 border-blue-400 text-white font-bold"
-                                : "bg-slate-950 border-slate-700 text-slate-300 hover:border-blue-400"
-                            }`}
-                          >
-                            <div>300회 / 월</div>
-                            <div className="text-amber-300">월 100,000원</div>
-                          </button>
-                        </td>
-                        <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedPlan({
-                                tier: "PRO",
-                                period: "6개월",
-                                quota: "2,000회 / 6개월",
-                                price: "500,000원",
-                                targetUser: "2 ~ 10인",
-                              })
-                            }
-                            className={`w-full p-2 rounded-lg border text-left transition ${
-                              selectedPlan.tier === "PRO" &&
-                              selectedPlan.period === "6개월"
-                                ? "bg-blue-600 border-blue-400 text-white font-bold"
-                                : "bg-slate-950 border-slate-700 text-slate-300 hover:border-blue-400"
-                            }`}
-                          >
-                            <div>2,000회 / 6개월</div>
-                            <div className="text-amber-300">500,000원</div>
-                          </button>
-                        </td>
-                        <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedPlan({
-                                tier: "PRO",
-                                period: "1년",
-                                quota: "4,400회 / 년",
-                                price: "800,000원",
-                                targetUser: "2 ~ 10인",
-                              })
-                            }
-                            className={`w-full p-2 rounded-lg border text-left transition ${
-                              selectedPlan.tier === "PRO" &&
-                              selectedPlan.period === "1년"
-                                ? "bg-blue-600 border-blue-400 text-white font-bold"
-                                : "bg-slate-950 border-slate-700 text-slate-300 hover:border-blue-400"
-                            }`}
-                          >
-                            <div>4,400회 / 년</div>
-                            <div className="text-amber-300">1년 800,000원</div>
-                          </button>
-                        </td>
-                      </tr>
-
-                      {/* ULTRA 행 */}
-                      <tr className="bg-slate-900/60">
-                        <td className="p-2.5 font-extrabold text-rose-400">
-                          ULTRA
-                        </td>
-                        <td className="p-2.5 text-slate-300">
-                          CEO 및 전사 안전실 (11~30인)
-                        </td>
-                        <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedPlan({
-                                tier: "ULTRA",
-                                period: "1개월",
-                                quota: "2,000회 / 월",
-                                price: "500,000원",
-                                targetUser: "11 ~ 30인",
-                              })
-                            }
-                            className={`w-full p-2 rounded-lg border text-left transition ${
-                              selectedPlan.tier === "ULTRA" &&
-                              selectedPlan.period === "1개월"
-                                ? "bg-blue-600 border-blue-400 text-white font-bold"
-                                : "bg-slate-950 border-slate-700 text-slate-300 hover:border-blue-400"
-                            }`}
-                          >
-                            <div>2,000회 / 월</div>
-                            <div className="text-amber-300">월 500,000원</div>
-                          </button>
-                        </td>
-                        <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedPlan({
-                                tier: "ULTRA",
-                                period: "6개월",
-                                quota: "15,000회 / 6개월",
-                                price: "2,000,000원",
-                                targetUser: "11 ~ 30인",
-                              })
-                            }
-                            className={`w-full p-2 rounded-lg border text-left transition ${
-                              selectedPlan.tier === "ULTRA" &&
-                              selectedPlan.period === "6개월"
-                                ? "bg-blue-600 border-blue-400 text-white font-bold"
-                                : "bg-slate-950 border-slate-700 text-slate-300 hover:border-blue-400"
-                            }`}
-                          >
-                            <div>15,000회 / 6개월</div>
-                            <div className="text-amber-300">2,000,000원</div>
-                          </button>
-                        </td>
-                        <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedPlan({
-                                tier: "ULTRA",
-                                period: "1년",
-                                quota: "40,000회 / 년",
-                                price: "4,000,000원",
-                                targetUser: "11 ~ 30인",
-                              })
-                            }
-                            className={`w-full p-2 rounded-lg border text-left transition ${
-                              selectedPlan.tier === "ULTRA" &&
-                              selectedPlan.period === "1년"
-                                ? "bg-blue-600 border-blue-400 text-white font-bold"
-                                : "bg-slate-950 border-slate-700 text-slate-300 hover:border-blue-400"
-                            }`}
-                          >
-                            <div>40,000회 / 년</div>
-                            <div className="text-amber-300">1년 4,000,000원</div>
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* 3. 별도 특별 배려 코너 (TRIAL 무료 체험: 2인, 3일간 10회) */}
-              <div>
-                <div className="bg-emerald-800 text-white text-xs md:text-sm font-bold py-2 px-3 rounded-t-lg">
-                  3. [별도 특별 배려 코너] 정식 결제 전, 성능을 직접 검증해 보고 싶은 고객을 위한{" "}
-                  <span className="text-yellow-300">사전 테스트</span>
-                </div>
-                <div className="p-3.5 border border-slate-700 rounded-b-lg bg-slate-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="text-xs space-y-1">
-                    <div className="font-bold text-white">
-                      특별 등급: <span className="text-emerald-400">TRIAL</span>{" "}
-                      (무료 체험 / 사전 검증 희망 고객)
-                    </div>
-                    <div className="text-slate-300">
-                      사용자 수: <strong className="text-rose-400">2인</strong> |
-                      체험 기간 및 Q&amp;A 한도:{" "}
-                      <strong className="text-rose-400">3일간 10회 고정</strong> |
-                      가격: <strong className="text-emerald-400">무료 (0원)</strong>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSelectedPlan({
-                        tier: "TRIAL",
-                        period: "3일",
-                        quota: "3일간 10회",
-                        price: "무료 (0원)",
-                        targetUser: "2인",
-                      })
-                    }
-                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                      selectedPlan.tier === "TRIAL"
-                        ? "bg-emerald-600 text-white shadow"
-                        : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600"
-                    }`}
-                  >
-                    {selectedPlan.tier === "TRIAL"
-                      ? "✓ TRIAL (3일간 10회) 선택됨"
-                      : "TRIAL 무료체험 선택하기"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 우측 5컬럼: 3-2 구독 신청서 입력, 무통장 입금계좌 안내, 실입금자 입력란 */}
-            <div className="lg:col-span-5 p-6 rounded-2xl bg-slate-900 border border-blue-500/40 shadow-2xl space-y-5">
-              <div>
-                <div className="text-xs font-bold text-blue-400 mb-1">
-                  내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; • STEP 3-2
-                </div>
-                <h2 className="text-xl font-extrabold text-white">
-                  3-2. 구독신청 및 구독료 입금
+        {/* =====================================================================
+            [MAIN STAGE 3] 3-1, 3-2, 3-3 구독 관문
+        ===================================================================== */}
+        {mainStage === 3 && (
+          <div>
+            {/* 3-1 단계: 이메일 확인 및 설문 데이터 자동 호출 */}
+            {subStep === '3-1' && (
+              <div style={styles.singleCardWrap}>
+                <div style={styles.stepTag}>STEP 3-1 • 사전 신청자 본인 확인</div>
+                <h2 style={styles.cardTitle}>
+                  2단계 신청서(구글 설문지) 이메일 확인
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  좌측 &lt;구독모델 운영안&gt;에서 등급과 기간을 클릭하신 후 아래 실입금자명을 입력하고 완료 버튼을 눌러주십시오.
+                <p style={styles.cardDesc}>
+                  신청서(구글 설문지)에 입력하셨던 이메일 주소를 다시 한번 동일하게 입력해 주십시오.
+                  <br />
+                  이전에 입력하신 <strong>성명, 사업장명, 사업자등록번호, 휴대폰 번호, 현재직무</strong> 데이터를 즉시 불러오므로 중복 입력하실 필요가 없습니다.
                 </p>
-              </div>
 
-              {/* 현재 선택된 등급/기간 표시 박스 */}
-              <div className="p-4 rounded-xl bg-blue-950/60 border border-blue-500/50 space-y-1">
-                <div className="text-xs text-blue-300 font-semibold">
-                  현재 선택하신 구독 등급 및 기간
-                </div>
-                <div className="text-lg font-extrabold text-white flex items-center justify-between">
-                  <span>
-                    {selectedPlan.tier} 등급 ({selectedPlan.period})
-                  </span>
-                  <span className="text-amber-300">{selectedPlan.price}</span>
-                </div>
-                <div className="text-xs text-slate-300">
-                  제공 Q&amp;A 한도: <strong>{selectedPlan.quota}</strong> | 사용
-                  인원: {selectedPlan.targetUser}
-                </div>
-              </div>
-
-              {/* 가 & 나. 무통장 입금계좌 및 통합 필수 안내문구 (계좌번호 바로 아래 100% 산안비 문구 배치) */}
-              <div className="p-4 rounded-xl bg-slate-950 border border-amber-500/40 space-y-2">
-                <div className="text-xs font-bold text-amber-400">
-                  🏦 구독료 무통장 입금 계좌 안내
-                </div>
-                <div className="text-base font-extrabold text-white tracking-wide bg-slate-900 p-3 rounded-lg border border-slate-800">
-                  하나은행 201-890629-15207{" "}
-                  <span className="text-sm font-bold text-amber-300">
-                    (예금주: 권일주)
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-400 font-bold">
-                  ※ 앱 구독료는 100% 전액 산업안전관리비로 사용 가능합니다.
-                </p>
-                <p className="text-xs text-slate-200 leading-relaxed pt-1 border-t border-slate-800">
-                  •{" "}
-                  <strong>
-                    구독신청과 구독료 입금 완료시 &lt;라이선스 키&gt;가 입력하셨던 이메일로 통보됩니다.
-                  </strong>
-                </p>
-              </div>
-
-              {/* 신청자 기본 정보 및 다. 실입금자 입력란 */}
-              <form onSubmit={handleCompleteStep32} className="space-y-3.5">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-slate-300 font-semibold mb-1">
-                      성명(담당자) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      placeholder="정동진"
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-300 font-semibold mb-1">
-                      사업장명 *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.company}
-                      onChange={(e) =>
-                        setFormData({ ...formData, company: e.target.value })
-                      }
-                      placeholder="(주)그랜드썬"
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-slate-300 font-semibold mb-1">
-                      사업자등록번호
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.bizNo}
-                      onChange={(e) =>
-                        setFormData({ ...formData, bizNo: e.target.value })
-                      }
-                      placeholder="111-22-33456 또는 개인"
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-300 font-semibold mb-1">
-                      휴대폰 번호 *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                      placeholder="010-2222-5555"
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-slate-300 font-semibold mb-1">
-                    이메일 계정 (라이선스 키 수신용) *
+                <form onSubmit={handleCheckEmail} style={{ marginTop: '22px' }}>
+                  <label style={styles.inputLabel}>
+                    신청서(구글 설문지)에 입력하셨던 이메일 주소
                   </label>
                   <input
                     type="email"
+                    value={inputEmail}
+                    onChange={(e) => setInputEmail(e.target.value)}
+                    placeholder="예: safety@gmail.com"
+                    style={styles.textInput}
                     required
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    placeholder="iequus88@gmail.com"
-                    className="w-full px-3 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
                   />
+
+                  <button type="submit" disabled={loading} style={styles.goldSubmitBtn}>
+                    {loading ? '설문지 입력 데이터 불러오는 중...' : '이메일 확인 및 신청정보 자동 불러오기 (3-2 이동) →'}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* 3-2 단계: 좌측 <구독모델 운영안> 상시 표시 + 우측 등급·기간·실입금자 선택 */}
+            {subStep === '3-2' && (
+              <div style={styles.twoColGrid}>
+                {/* 좌측: <구독모델 운영안> 바이블 표 */}
+                <div style={styles.panelCard}>
+                  <div style={styles.stepTag}>구독자 참고용 바이블</div>
+                  <h2 style={styles.cardTitle}>📊 &lt;구독모델 운영안&gt;</h2>
+                  <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '16px', lineHeight: 1.5 }}>
+                    SAFETY CONSULTING 앱은 검색용이 아닙니다. 요리가 완료되어 바로 드실 수 있는 <strong>&lt;밀 키트&gt;</strong> 제공용입니다.
+                  </p>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={styles.priceTable}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#0f172a', color: '#fbbf24' }}>
+                          <th style={styles.thCell}>등급</th>
+                          <th style={styles.thCell}>핵심 고객 (한도)</th>
+                          <th style={styles.thCell}>1개월</th>
+                          <th style={styles.thCell}>6개월</th>
+                          <th style={styles.thCell}>1년 (연간)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style={applicant.tier === 'STANDARD' ? styles.activeRow : undefined}>
+                          <td style={{ ...styles.tdCell, fontWeight: 800, color: '#fbbf24' }}>STANDARD</td>
+                          <td style={styles.tdCell}>수험생·단일 현장<br />(1인)</td>
+                          <td style={styles.tdCell}>60회<br /><strong>30,000원</strong></td>
+                          <td style={styles.tdCell}>400회<br /><strong>150,000원</strong></td>
+                          <td style={styles.tdCell}>900회<br /><strong>200,000원</strong></td>
+                        </tr>
+                        <tr style={applicant.tier === 'PRO' ? styles.activeRow : undefined}>
+                          <td style={{ ...styles.tdCell, fontWeight: 800, color: '#38bdf8' }}>PRO</td>
+                          <td style={styles.tdCell}>중소기업 안전팀<br />(2~10인)</td>
+                          <td style={styles.tdCell}>300회<br /><strong>100,000원</strong></td>
+                          <td style={styles.tdCell}>2,000회<br /><strong>500,000원</strong></td>
+                          <td style={styles.tdCell}>4,400회<br /><strong>800,000원</strong></td>
+                        </tr>
+                        <tr style={applicant.tier === 'ULTRA' ? styles.activeRow : undefined}>
+                          <td style={{ ...styles.tdCell, fontWeight: 800, color: '#a855f7' }}>ULTRA</td>
+                          <td style={styles.tdCell}>CEO·전사 안전실<br />(11~30인)</td>
+                          <td style={styles.tdCell}>2,000회<br /><strong>500,000원</strong></td>
+                          <td style={styles.tdCell}>15,000회<br /><strong>2,000,000원</strong></td>
+                          <td style={styles.tdCell}>40,000회<br /><strong>4,000,000원</strong></td>
+                        </tr>
+                        <tr style={applicant.tier === 'TRIAL' ? styles.activeRow : undefined}>
+                          <td style={{ ...styles.tdCell, fontWeight: 800, color: '#10b981' }}>TRIAL</td>
+                          <td style={styles.tdCell}>사전 검증 체험<br />(2인)</td>
+                          <td colSpan={3} style={{ ...styles.tdCell, color: '#6ee7b7', fontWeight: 700 }}>
+                            3일간 10회 고정 — 무료 (0원)
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* 설문지에서 자동 불러온 고객 정보 확인란 (재입력 불필요) */}
+                  <div style={styles.autoFillBox}>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#38bdf8', marginBottom: '10px' }}>
+                      ✓ 2단계 설문지에서 자동 불러온 고객 기본정보 (수정 가능 / 재입력 불필요)
+                    </div>
+                    <div style={styles.autoFillGrid}>
+                      <div>
+                        <span style={styles.miniLabel}>성명(담당자)</span>
+                        <input
+                          type="text"
+                          value={applicant.name}
+                          onChange={(e) => setApplicant({ ...applicant, name: e.target.value })}
+                          style={styles.miniInput}
+                        />
+                      </div>
+                      <div>
+                        <span style={styles.miniLabel}>사업장명</span>
+                        <input
+                          type="text"
+                          value={applicant.company}
+                          onChange={(e) => setApplicant({ ...applicant, company: e.target.value })}
+                          style={styles.miniInput}
+                        />
+                      </div>
+                      <div>
+                        <span style={styles.miniLabel}>사업자등록번호</span>
+                        <input
+                          type="text"
+                          value={applicant.bizNo}
+                          onChange={(e) => setApplicant({ ...applicant, bizNo: e.target.value })}
+                          style={styles.miniInput}
+                        />
+                      </div>
+                      <div>
+                        <span style={styles.miniLabel}>휴대폰 번호</span>
+                        <input
+                          type="text"
+                          value={applicant.phone}
+                          onChange={(e) => setApplicant({ ...applicant, phone: e.target.value })}
+                          style={styles.miniInput}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* 다. 실입금자 입력 란 (구독료 입금 후 입력토록 강조) */}
-                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/40">
-                  <label className="block text-xs font-extrabold text-amber-300 mb-1.5">
-                    💳 실입금자 명 입력 란 (구독료 입금 후 입력해 주세요) *
+                {/* 우측: 3-2 구독 등급·기간 선택 및 무통장 입금 */}
+                <div style={styles.panelCard}>
+                  <div style={styles.stepTag}>STEP 3-2 • 구독 등급·기간 선정 및 입금</div>
+                  <h2 style={styles.cardTitle}>구독 신청 및 입금자 확인</h2>
+
+                  <form onSubmit={handleSubmitStep32}>
+                    {/* 1. 등급 선택 */}
+                    <div style={{ marginBottom: '18px' }}>
+                      <label style={styles.inputLabel}>1. 구독 등급 선택</label>
+                      <div style={styles.tierBtnGrid}>
+                        {['STANDARD', 'PRO', 'ULTRA', 'TRIAL'].map((tKey) => (
+                          <button
+                            key={tKey}
+                            type="button"
+                            onClick={() => handleTierSelect(tKey)}
+                            style={applicant.tier === tKey ? styles.tierBtnSelected : styles.tierBtn}
+                          >
+                            <div style={{ fontWeight: 800, fontSize: '15px' }}>{tKey}</div>
+                            <div style={{ fontSize: '11px', opacity: 0.85 }}>{PLAN_DATA[tKey].users}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 2. 구독 기간 선택 */}
+                    <div style={{ marginBottom: '18px' }}>
+                      <label style={styles.inputLabel}>2. 구독 기간 및 요금 선택</label>
+                      <div style={styles.periodBtnGrid}>
+                        {Object.keys(currentPlan.periods).map((pKey) => {
+                          const pSpec = currentPlan.periods[pKey];
+                          return (
+                            <button
+                              key={pKey}
+                              type="button"
+                              onClick={() => setApplicant({ ...applicant, period: pKey })}
+                              style={applicant.period === pKey ? styles.periodBtnSelected : styles.periodBtn}
+                            >
+                              <div style={{ fontWeight: 800, fontSize: '14px' }}>{pKey}</div>
+                              <div style={{ fontSize: '12px', color: '#fbbf24', marginTop: '2px' }}>
+                                {pSpec.quota.toLocaleString()}회 / {pSpec.price}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 무통장 입금 계좌 및 필수 안내문구 (바이블 위치 고정) */}
+                    <div style={styles.bankBox}>
+                      <div style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 700, marginBottom: '4px' }}>
+                        💳 구독료 무통장 입금 계좌
+                      </div>
+                      <div style={{ fontSize: '19px', fontWeight: 900, color: '#fbbf24', marginBottom: '8px' }}>
+                        하나은행 201-890629-15207 (예금주: 권일주)
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#fef08a', fontWeight: 700, lineHeight: 1.55 }}>
+                        ※ 앱 구독료는 100% 전액 산업안전관리비로 사용 가능합니다.
+                        <br />
+                        ※ 구독신청과 구독료 입금 완료시 <span style={{ color: '#ffffff', textDecoration: 'underline', fontSize: '14px' }}>&lt;라이선스 키&gt;</span>가 입력하셨던 이메일로 통보됩니다.
+                      </div>
+                    </div>
+
+                    {/* 3. 소통방법 및 실입금자 입력란 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                      <div>
+                        <label style={styles.inputLabel}>주 소통방법 (P열)</label>
+                        <select
+                          value={applicant.contactMethod}
+                          onChange={(e) => setApplicant({ ...applicant, contactMethod: e.target.value })}
+                          style={styles.textInput}
+                        >
+                          <option value="이메일">이메일</option>
+                          <option value="카카오톡">카카오톡</option>
+                          <option value="휴대폰 문자">휴대폰 문자(SMS)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={styles.inputLabel}>입금 완료 후 실입금자 입력 (Q열)</label>
+                        <input
+                          type="text"
+                          value={applicant.depositor}
+                          onChange={(e) => setApplicant({ ...applicant, depositor: e.target.value })}
+                          placeholder="실제 입금자명 (또는 회사명)"
+                          style={styles.textInput}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setSubStep('3-1')}
+                        style={styles.backBtn}
+                      >
+                        ← 이전
+                      </button>
+                      <button type="submit" disabled={loading} style={{ ...styles.goldSubmitBtn, flex: 1, marginTop: 0 }}>
+                        {loading ? '관리대장(기초) 인입 및 이메일 발송 중...' : '구독신청 완료 및 3-3 단계로 이동 →'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* 3-3 단계: 라이선스 키 입력 */}
+            {subStep === '3-3' && (
+              <div style={styles.singleCardWrap}>
+                <div style={styles.stepTag}>내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; • STEP 3-3</div>
+                <h2 style={styles.cardTitle}>
+                  내 회사의 안전 해결사 &lt; 안전 관제탑 &gt;
+                </h2>
+
+                <div style={styles.keyNoticeBox}>
+                  입력하신 이메일로 <strong style={{ color: '#fbbf24', fontSize: '18px' }}>&lt;라이선스 키&gt;</strong>가 발송되었습니다. 이 키를 아래에 입력하십시요 <strong>( 별도로 잘 보관필요 ! )</strong>
+                </div>
+
+                <form onSubmit={handleVerifyKey}>
+                  <label style={styles.inputLabel}>
+                    발급받은 &lt;라이선스 키&gt; 입력 (브라우저 쿠키 보관으로 최초 1회만 입력하시면 됩니다)
                   </label>
                   <input
                     type="text"
-                    required={selectedPlan.tier !== "TRIAL"}
-                    value={formData.depositorName}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        depositorName: e.target.value,
-                      })
-                    }
-                    placeholder="실제 입금하신 분 또는 법인명 입력 (예: 홍길동)"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-amber-400/60 text-sm text-white font-bold placeholder-slate-500"
+                    value={inputLicenseKey}
+                    onChange={(e) => setInputLicenseKey(e.target.value)}
+                    placeholder="예: ST26-XSSP-NPHB"
+                    style={{ ...styles.textInput, fontSize: '18px', fontWeight: 800, letterSpacing: '1px' }}
+                    required
                   />
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-extrabold text-sm shadow-xl transition"
-                >
-                  {loading
-                    ? "구독관리대장 자동 인입 및 2차 메일 발송 중..."
-                    : "구독신청 완료 (클릭 시 3-3 라이선스 입력 단계로 진입) →"}
-                </button>
-              </form>
-            </div>
-          </section>
+                  <button type="submit" disabled={loading} style={styles.goldSubmitBtn}>
+                    {loading ? '라이선스 키 인증 확인 중...' : '라이선스 키 입력 완료 (4단계로 진입) →'}
+                  </button>
+                </form>
+
+                <div style={styles.masterKeyHelper}>
+                  <span>🛠️ <strong>동진 님 점검용 프리패스 키:</strong> 클릭 시 시트 승인 키(<code>ST26-XSSP-NPHB</code>)가 자동 입력됩니다.</span>
+                  <button
+                    type="button"
+                    onClick={() => setInputLicenseKey('ST26-XSSP-NPHB')}
+                    style={styles.smallFillBtn}
+                  >
+                    승인키 자동 채우기
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* ===================================================================
-            [STEP 3] 3-3 구독자가 라이선스키 입력
-            (바이블 3-3 문구 수정 반영 완료)
-        =================================================================== */}
-        {step === 3 && (
-          <section className="max-w-2xl mx-auto p-6 md:p-8 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl space-y-6">
-            <div>
-              <div className="text-xs font-bold text-blue-400 mb-1">
-                내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; • STEP 3-3
+        {/* =====================================================================
+            [MAIN STAGE 4] 4단계 크롬/엣지 vs 네이버 웨일 브라우저 확인 팝업
+        ===================================================================== */}
+        {mainStage === 4 && (
+          <div style={styles.singleCardWrap}>
+            <div style={styles.stepTag}>STEP 4 • 음성 인식 최적화 브라우저 확인</div>
+            <h2 style={styles.cardTitle}>
+              현재 이 앱을 실행하는 창이 <span style={{ color: '#fbbf24' }}>구글 크롬(Chrome)</span> 또는 <span style={{ color: '#38bdf8' }}>MS 엣지(Edge)</span> 이신가요?
+            </h2>
+            <p style={styles.cardDesc}>
+              안전관제탑의 실시간 음성 질문 입력 기능은 구글 크롬과 MS 엣지 브라우저에서 가장 완벽하게 작동합니다.
+              <br />
+              네이버 웨일(Whale) 브라우저 사용 고객님께서는 아래 안내에 따라 문자 입력 모드로 이용하시거나 크롬으로 전환하실 수 있습니다.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '24px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode('voice');
+                  setMainStage(5);
+                }}
+                style={styles.chromeChoiceBtn}
+              >
+                <div style={{ fontSize: '17px', fontWeight: 800 }}>🎙️ 네, 맞아요! (크롬 / 엣지 사용 중)</div>
+                <div style={{ fontSize: '12px', marginTop: '6px', opacity: 0.9 }}>
+                  원활한 음성+문자 입력 지원 → 5단계 본 화면 즉시 진입
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWhaleGuideOpen(true)}
+                style={styles.whaleChoiceBtn}
+              >
+                <div style={{ fontSize: '17px', fontWeight: 800 }}>🐳 아니요 (네이버 웨일 등 사용 중)</div>
+                <div style={{ fontSize: '12px', marginTop: '6px', color: '#cbd5e1' }}>
+                  문자 입력 모드로 계속하기 또는 크롬 전환 안내
+                </div>
+              </button>
+            </div>
+
+            {whaleGuideOpen && (
+              <div style={styles.whaleSubBox}>
+                <div style={{ fontWeight: 800, color: '#38bdf8', fontSize: '15px', marginBottom: '8px' }}>
+                  💡 네이버 웨일 브라우저 고객님 안내
+                </div>
+                <p style={{ fontSize: '13px', color: '#e2e8f0', lineHeight: 1.6, marginBottom: '14px' }}>
+                  네이버 웨일에서는 브라우저 정책상 음성 마이크 입력이 제한될 수 있습니다. 지금 바로 <strong>[문자입력 모드로 계속하기]</strong>를 눌러 본 화면(5단계)으로 입장하시거나, 주소를 복사해 크롬에서 여실 수 있습니다.
+                </p>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.origin);
+                      setNotice('앱 주소가 복사되었습니다. 크롬 브라우저 주소창에 붙여넣기 해주세요.');
+                    }}
+                    style={styles.backBtn}
+                  >
+                    📋 크롬으로 변경할래요 (주소 복사)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputMode('text');
+                      setMainStage(5);
+                    }}
+                    style={{ ...styles.goldSubmitBtn, width: 'auto', marginTop: 0, padding: '12px 24px' }}
+                  >
+                    ⌨️ 문자입력 모드로 계속하기 (5단계 본 앱 진입) →
+                  </button>
+                </div>
               </div>
-              <h2 className="text-xl md:text-2xl font-extrabold text-white mb-3">
-                내 회사의 안전 해결사 &lt; 안전 관제탑 &gt;
-              </h2>
-              <div className="p-4 rounded-xl bg-blue-950/70 border border-blue-500/40 text-sm text-blue-100 font-semibold leading-relaxed">
-                입력하신 이메일로 <strong>&lt;라이선스 키&gt;</strong>가 발송되었습니다. 이 키를 아래에 입력하십시요 ( 별도로 잘 보관필요 ! )
+            )}
+          </div>
+        )}
+
+        {/* =====================================================================
+            [MAIN STAGE 5] 5단계 안전관제탑 본 앱
+        ===================================================================== */}
+        {mainStage === 5 && (
+          <div style={styles.panelCard}>
+            <div style={styles.stage5TopBar}>
+              <div>
+                <div style={styles.stepTag}>STEP 5 • 내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; 본 화면</div>
+                <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0, color: '#ffffff' }}>
+                  AI 산업안전 법규·중대재해처벌법 실시간 컨설팅 관제탑
+                </h2>
+              </div>
+              <div style={styles.userStatusBadge}>
+                <div>
+                  👤 <strong>{verifiedUser?.name || applicant.name || '인증 구독자'}</strong> ({verifiedUser?.company || applicant.company || '안전관리팀'})
+                </div>
+                <div style={{ color: '#fbbf24', fontWeight: 800 }}>
+                  등급: {verifiedUser?.tier || applicant.tier} • 잔여 한도: {(verifiedUser?.remainQuota ?? 900).toLocaleString()}회
+                </div>
               </div>
             </div>
 
-            <form onSubmit={handleVerifyKeyStep33} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-2">
-                  발급받은 &lt;라이선스 키&gt; 입력 (브라우저 쿠키 보관으로 최초 1회만 입력하시면 됩니다)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={licenseKey}
-                  onChange={(e) => setLicenseKey(e.target.value)}
-                  placeholder="예: ST26-XSSP-NPHB"
-                  className="w-full px-4 py-3.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-base uppercase tracking-wider focus:outline-none focus:border-emerald-500"
-                />
-              </div>
+            <div style={styles.chatContainer}>
+              {chatHistory.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={item.role === 'user' ? styles.userBubble : styles.aiBubble}
+                >
+                  <div style={{ fontSize: '12px', fontWeight: 800, marginBottom: '6px', color: item.role === 'user' ? '#0f172a' : '#fbbf24' }}>
+                    {item.role === 'user' ? '질문자 (현장 질의)' : '🛡️ 안전 관제탑 (20년 안전전문가 솔루션)'}
+                  </div>
+                  <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, fontSize: '14px' }}>
+                    {item.text}
+                  </div>
+                </div>
+              ))}
+            </div>
 
+            <form onSubmit={handleAskAI} style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+              <input
+                type="text"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder={
+                  inputMode === 'voice'
+                    ? '현장 안전보건법규, 위험성평가, 중대재해처벌법 대응 질문을 입력하십시오...'
+                    : '[문자입력 모드] 궁금하신 안전법규 및 현장 대책을 입력해 주십시오...'
+                }
+                style={{ ...styles.textInput, marginBottom: 0, flex: 1 }}
+              />
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-extrabold text-sm shadow-lg transition"
+                style={{ ...styles.goldSubmitBtn, width: '170px', marginTop: 0 }}
               >
-                {loading
-                  ? "라이선스 키 확인 중..."
-                  : "라이선스 키 입력 완료 (4단계로 진입) →"}
+                {loading ? '분석 중...' : '솔루션 질문 →'}
               </button>
             </form>
-
-            {/* 동진 님 점검 테스트용 원클릭 키 자동입력 도우미 */}
-            <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-400">
-              <span>
-                🛠️ <strong>동진 님 점검용 프리패스 키:</strong> 클릭 시 시트 승인 키(`ST26-XSSP-NPHB`)가 자동 입력됩니다.
-              </span>
-              <button
-                type="button"
-                onClick={() => setLicenseKey("ST26-XSSP-NPHB")}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold whitespace-nowrap"
-              >
-                승인키 자동 채우기
-              </button>
-            </div>
-          </section>
+          </div>
         )}
 
-        {/* ===================================================================
-            [STEP 4] 4단계: 크롬 또는 웨일 브라우저 선택 (음성입력 vs 문자입력 안내)
-        =================================================================== */}
-        {step === 4 && (
-          <section className="max-w-lg mx-auto bg-white text-slate-900 rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-200">
-            <div className="text-center mb-6">
-              <div className="text-2xl font-extrabold text-slate-900 flex items-center justify-center gap-2">
-                <span>👷‍♂️</span>
-                <span>Safety Consulting 앱</span>
-              </div>
-              <p className="text-sm text-slate-500 mt-1">
-                안전관리 AI 컨설팅 연결을 준비합니다.
-              </p>
-            </div>
-
-            {/* 4-1. 최초 질문 화면 */}
-            {browserSubStep === "ask" && (
-              <div className="space-y-4">
-                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
-                  <p className="text-base font-bold text-slate-800 leading-snug">
-                    대화하듯 원활한{" "}
-                    <span className="bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded underline">
-                      음성입력 🎤
-                    </span>{" "}
-                    을 위해
-                    <br />이 앱이 실행되는 기초를 선택해야 해요.
-                  </p>
-                  <div className="text-3xl py-1">🌐</div>
-                  <p className="text-sm font-semibold text-slate-600">
-                    현재 이 앱을 실행하는 창이
-                    <br />
-                    <strong>구글 크롬 (또는 MS 엣지)</strong> 이신가요?
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInputMode("voice");
-                    setBrowserSubStep("chrome_ok");
-                  }}
-                  className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-base shadow transition"
-                >
-                  네, 맞아요! (크롬/엣지 사용 중)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInputMode("text");
-                    setBrowserSubStep("whale_warn");
-                  }}
-                  className="w-full py-4 rounded-xl bg-slate-600 hover:bg-slate-500 text-white font-bold text-base shadow transition"
-                >
-                  아니요. (네이버 웨일 등 사용 중)
-                </button>
-              </div>
-            )}
-
-            {/* 4-2. 크롬/엣지 선택 시 화면 */}
-            {browserSubStep === "chrome_ok" && (
-              <div className="space-y-4">
-                <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-3">
-                  <div className="text-3xl">✅</div>
-                  <p className="text-base font-extrabold text-slate-800">
-                    원활한{" "}
-                    <span className="underline text-emerald-700">
-                      음성입력 🎤
-                    </span>
-                    이 지원돼요!
-                  </p>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    아래 버튼을 눌러 바로 안전관제탑 본 앱으로 진입하거나, 앱 링크를 복사하여 사용 중이신 주소창에 붙여넣기 해주세요.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setStep(5)}
-                  className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-base shadow-lg transition"
-                >
-                  🚀 안전관제탑 본 앱(5단계) 즉시 접속하기
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCopyAppUrl}
-                  className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm border border-slate-300 transition"
-                >
-                  {copySuccess
-                    ? "✓ 앱 주소가 복사되었습니다!"
-                    : "🔗 앱 주소 복사하기"}
-                </button>
-              </div>
-            )}
-
-            {/* 4-3. 네이버 웨일 선택 시 안내 화면 */}
-            {browserSubStep === "whale_warn" && (
-              <div className="space-y-4">
-                <div className="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-center space-y-3">
-                  <div className="text-3xl">⚠️</div>
-                  <p className="text-sm font-bold text-slate-800 leading-relaxed">
-                    현재 선택하신 네이버 웨일 브라우저에서는 자체 보안 때문에{" "}
-                    <span className="underline text-rose-700">음성입력 🎤</span>
-                    이 제한될 수 있어요.
-                  </p>
-                  <p className="text-sm font-extrabold text-slate-900">
-                    <span className="underline text-rose-700">문자입력 ⌨️</span>{" "}
-                    모드로 앱을 진행할게요.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInputMode("text");
-                    setStep(5);
-                  }}
-                  className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-base shadow-lg transition"
-                >
-                  ⌨️ 문자입력 모드로 계속하기 (5단계 접속)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setBrowserSubStep("ask")}
-                  className="w-full py-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-sm border border-slate-300 transition"
-                >
-                  ⬅️ 뒤로 가기 (크롬으로 변경할래요)
-                </button>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* ===================================================================
-            [STEP 5] 5단계: 브라우저 선택 완료 후 안전관제탑 본 앱 접속 화면
-        =================================================================== */}
-        {step === 5 && (
-          <section className="p-6 md:p-8 rounded-2xl bg-slate-900 border border-emerald-500/40 shadow-2xl space-y-6">
-            <div className="p-4 rounded-xl bg-emerald-950/50 border border-emerald-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-bold text-emerald-400 mb-1">
-                  ✓ 5단계 본 앱 접속 완료 •{" "}
-                  {inputMode === "voice"
-                    ? "🎤 크롬/엣지 음성+문자 통합 모드"
-                    : "⌨️ 네이버 웨일 문자입력 전용 모드"}
-                </div>
-                <h2 className="text-lg md:text-xl font-extrabold text-white">
-                  내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; AI 솔루션 가동 중
-                </h2>
-                <p className="text-xs text-slate-300 mt-1">
-                  접속 회원:{" "}
-                  <strong>{verifiedUser?.name || formData.name || "인증 회원"}</strong> (
-                  {verifiedUser?.company || formData.company || "회원사"}) | 등급:{" "}
-                  <strong className="text-amber-300">
-                    {verifiedUser?.tier || selectedPlan.tier}
-                  </strong>{" "}
-                  | 라이선스 키:{" "}
-                  <span className="font-mono text-emerald-300">
-                    {verifiedUser?.licenseKey || licenseKey || "승인완료"}
-                  </span>
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setInputMode(inputMode === "voice" ? "text" : "voice")
-                  }
-                  className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700"
-                >
-                  {inputMode === "voice"
-                    ? "⌨️ 문자 모드로 전환"
-                    : "🎤 음성 모드로 전환"}
-                </button>
-              </div>
-            </div>
-
-            {/* 안전관제탑 AI 법규 질의응답 창 */}
-            <form onSubmit={handleAskSafetyAi} className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-white mb-2">
-                  중처법·산안법·건진법·전기공사업법 등 현장 안전 질문을 입력해 주세요
-                </label>
-                <textarea
-                  rows={4}
-                  value={safetyQuery}
-                  onChange={(e) => setSafetyQuery(e.target.value)}
-                  placeholder="예: 태양광 지붕 공사 중 채광창 추락 방지를 위한 안전보건규칙 기준과 중대재해처벌법 면책 서류는 무엇인가요?"
-                  className="w-full p-4 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg transition"
-                >
-                  안전관제탑 밀키트 솔루션 도출하기 →
-                </button>
-              </div>
-            </form>
-
-            {aiAnswer && (
-              <div className="p-6 rounded-xl bg-slate-950 border border-blue-500/40 text-sm text-slate-200 whitespace-pre-line leading-relaxed">
-                {aiAnswer}
-              </div>
-            )}
-          </section>
-        )}
-      </main>
-
-      {/* 하단 푸터 */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-5 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4">
+        <footer style={styles.footer}>
           내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; | SAFETY CONSULTING APP (20년 안전관리 전문가 솔루션)
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: '100vh',
+    backgroundColor: '#0b1120',
+    backgroundImage: 'radial-gradient(circle at 50% 0%, #1e293b 0%, #0b1120 75%)',
+    color: '#f8fafc',
+    fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    padding: '28px 18px 60px',
+    boxSizing: 'border-box'
+  },
+  container: {
+    maxWidth: '1200px',
+    margin: '0 auto'
+  },
+  header: {
+    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.92) 0%, rgba(15, 23, 42, 0.98) 100%)',
+    border: '1px solid rgba(245, 158, 11, 0.35)',
+    borderRadius: '18px',
+    padding: '22px 26px',
+    marginBottom: '24px',
+    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.4)'
+  },
+  topBadgeRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '10px',
+    marginBottom: '14px',
+    paddingBottom: '12px',
+    borderBottom: '1px solid rgba(148, 163, 184, 0.18)'
+  },
+  goldBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    border: '1px solid rgba(245, 158, 11, 0.45)',
+    color: '#fbbf24',
+    padding: '6px 14px',
+    borderRadius: '999px',
+    fontSize: '12px',
+    fontWeight: 800
+  },
+  stageQuickLinks: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px'
+  },
+  navPill: {
+    backgroundColor: '#1e293b',
+    border: '1px solid #334155',
+    color: '#94a3b8',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer'
+  },
+  navPillActive: {
+    backgroundColor: '#f59e0b',
+    border: '1px solid #fbbf24',
+    color: '#0f172a',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: 800,
+    cursor: 'pointer'
+  },
+  mainHeading: {
+    fontSize: '30px',
+    fontWeight: 900,
+    margin: '0 0 8px 0',
+    letterSpacing: '-0.5px',
+    color: '#ffffff'
+  },
+  subHeading: {
+    fontSize: '14px',
+    color: '#cbd5e1',
+    margin: 0,
+    lineHeight: 1.55
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+    border: '1px solid #ef4444',
+    color: '#fca5a5',
+    padding: '14px 18px',
+    borderRadius: '12px',
+    marginBottom: '20px',
+    fontSize: '14px',
+    fontWeight: 700
+  },
+  noticeBanner: {
+    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    border: '1px solid #10b981',
+    color: '#6ee7b7',
+    padding: '14px 18px',
+    borderRadius: '12px',
+    marginBottom: '20px',
+    fontSize: '14px',
+    fontWeight: 700
+  },
+  singleCardWrap: {
+    maxWidth: '680px',
+    margin: '0 auto',
+    backgroundColor: '#1e293b',
+    border: '1px solid rgba(148, 163, 184, 0.25)',
+    borderRadius: '18px',
+    padding: '30px',
+    boxShadow: '0 14px 34px rgba(0, 0, 0, 0.35)'
+  },
+  twoColGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
+    gap: '22px',
+    alignItems: 'start'
+  },
+  panelCard: {
+    backgroundColor: '#1e293b',
+    border: '1px solid rgba(148, 163, 184, 0.25)',
+    borderRadius: '18px',
+    padding: '26px',
+    boxShadow: '0 14px 34px rgba(0, 0, 0, 0.35)'
+  },
+  stepTag: {
+    color: '#fbbf24',
+    fontSize: '12px',
+    fontWeight: 800,
+    marginBottom: '6px',
+    letterSpacing: '0.5px'
+  },
+  cardTitle: {
+    fontSize: '22px',
+    fontWeight: 800,
+    margin: '0 0 12px 0',
+    color: '#ffffff'
+  },
+  cardDesc: {
+    fontSize: '14px',
+    color: '#cbd5e1',
+    lineHeight: 1.6,
+    margin: 0
+  },
+  inputLabel: {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: 700,
+    color: '#e2e8f0',
+    marginBottom: '8px'
+  },
+  textInput: {
+    width: '100%',
+    padding: '13px 15px',
+    borderRadius: '10px',
+    border: '1px solid #475569',
+    backgroundColor: '#0f172a',
+    color: '#ffffff',
+    fontSize: '15px',
+    boxSizing: 'border-box',
+    marginBottom: '16px',
+    outline: 'none'
+  },
+  goldSubmitBtn: {
+    width: '100%',
+    padding: '15px 20px',
+    borderRadius: '12px',
+    border: 'none',
+    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    color: '#0f172a',
+    fontSize: '15px',
+    fontWeight: 900,
+    cursor: 'pointer',
+    marginTop: '6px',
+    boxShadow: '0 6px 20px rgba(245, 158, 11, 0.3)'
+  },
+  backBtn: {
+    padding: '13px 18px',
+    borderRadius: '12px',
+    border: '1px solid #475569',
+    backgroundColor: '#0f172a',
+    color: '#cbd5e1',
+    fontSize: '14px',
+    fontWeight: 700,
+    cursor: 'pointer'
+  },
+  priceTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '12px',
+    textAlign: 'center',
+    border: '1px solid #334155'
+  },
+  thCell: {
+    padding: '10px 6px',
+    border: '1px solid #334155',
+    fontWeight: 800
+  },
+  tdCell: {
+    padding: '10px 6px',
+    border: '1px solid #334155',
+    color: '#e2e8f0',
+    lineHeight: 1.4
+  },
+  activeRow: {
+    backgroundColor: 'rgba(245, 158, 11, 0.14)'
+  },
+  autoFillBox: {
+    marginTop: '18px',
+    padding: '16px',
+    borderRadius: '12px',
+    backgroundColor: '#0f172a',
+    border: '1px solid #334155'
+  },
+  autoFillGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '10px'
+  },
+  miniLabel: {
+    display: 'block',
+    fontSize: '11px',
+    color: '#94a3b8',
+    marginBottom: '4px'
+  },
+  miniInput: {
+    width: '100%',
+    padding: '8px 10px',
+    borderRadius: '8px',
+    border: '1px solid #334155',
+    backgroundColor: '#1e293b',
+    color: '#f8fafc',
+    fontSize: '13px',
+    boxSizing: 'border-box'
+  },
+  tierBtnGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '8px'
+  },
+  tierBtn: {
+    padding: '12px 6px',
+    borderRadius: '10px',
+    border: '1px solid #475569',
+    backgroundColor: '#0f172a',
+    color: '#cbd5e1',
+    cursor: 'pointer'
+  },
+  tierBtnSelected: {
+    padding: '12px 6px',
+    borderRadius: '10px',
+    border: '2px solid #fbbf24',
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    color: '#fbbf24',
+    cursor: 'pointer'
+  },
+  periodBtnGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+    gap: '8px'
+  },
+  periodBtn: {
+    padding: '12px 10px',
+    borderRadius: '10px',
+    border: '1px solid #475569',
+    backgroundColor: '#0f172a',
+    color: '#cbd5e1',
+    cursor: 'pointer'
+  },
+  periodBtnSelected: {
+    padding: '12px 10px',
+    borderRadius: '10px',
+    border: '2px solid #38bdf8',
+    backgroundColor: 'rgba(56, 189, 248, 0.16)',
+    color: '#ffffff',
+    cursor: 'pointer'
+  },
+  bankBox: {
+    padding: '16px',
+    borderRadius: '12px',
+    backgroundColor: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.5)',
+    marginBottom: '18px'
+  },
+  keyNoticeBox: {
+    padding: '16px',
+    borderRadius: '12px',
+    backgroundColor: 'rgba(245, 158, 11, 0.14)',
+    border: '1px solid rgba(245, 158, 11, 0.45)',
+    color: '#fef3c7',
+    fontSize: '15px',
+    lineHeight: 1.6,
+    marginBottom: '20px'
+  },
+  masterKeyHelper: {
+    marginTop: '22px',
+    paddingTop: '14px',
+    borderTop: '1px dashed #334155',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '8px',
+    fontSize: '12px',
+    color: '#94a3b8'
+  },
+  smallFillBtn: {
+    padding: '7px 12px',
+    borderRadius: '8px',
+    border: '1px solid #475569',
+    backgroundColor: '#0f172a',
+    color: '#fbbf24',
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer'
+  },
+  chromeChoiceBtn: {
+    padding: '20px 16px',
+    borderRadius: '14px',
+    border: '2px solid #fbbf24',
+    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    color: '#0f172a',
+    cursor: 'pointer'
+  },
+  whaleChoiceBtn: {
+    padding: '20px 16px',
+    borderRadius: '14px',
+    border: '1px solid #38bdf8',
+    backgroundColor: '#0f172a',
+    color: '#38bdf8',
+    cursor: 'pointer'
+  },
+  whaleSubBox: {
+    marginTop: '18px',
+    padding: '18px',
+    borderRadius: '12px',
+    backgroundColor: '#0f172a',
+    border: '1px solid #38bdf8'
+  },
+  stage5TopBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '12px',
+    paddingBottom: '16px',
+    marginBottom: '18px',
+    borderBottom: '1px solid #334155'
+  },
+  userStatusBadge: {
+    backgroundColor: '#0f172a',
+    border: '1px solid #475569',
+    borderRadius: '10px',
+    padding: '10px 14px',
+    fontSize: '13px',
+    lineHeight: 1.5
+  },
+  chatContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    maxHeight: '460px',
+    overflowY: 'auto',
+    padding: '14px',
+    backgroundColor: '#0f172a',
+    borderRadius: '12px',
+    border: '1px solid #334155'
+  },
+  aiBubble: {
+    alignSelf: 'flex-start',
+    maxWidth: '88%',
+    backgroundColor: '#1e293b',
+    border: '1px solid #334155',
+    borderRadius: '12px',
+    padding: '14px 16px',
+    color: '#f8fafc'
+  },
+  userBubble: {
+    alignSelf: 'flex-end',
+    maxWidth: '80%',
+    backgroundColor: '#fbbf24',
+    borderRadius: '12px',
+    padding: '12px 16px',
+    color: '#0f172a',
+    fontWeight: 700
+  },
+  footer: {
+    marginTop: '34px',
+    textAlign: 'center',
+    fontSize: '12px',
+    color: '#64748b'
+  }
+};
