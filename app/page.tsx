@@ -11,7 +11,7 @@
 import React, { useState, useEffect } from 'react';
 
 // ★ [1] 4단계 통과 후 이동할 '정식 구동 메인 앱' 주소 (나중에 도메인 변경 시 여기만 수정)
-const MAIN_APP_URL = "https://safety-consulting-rj8g-ah7er8unh-pilot-7df3.vercel.app/index.html";
+const MAIN_APP_URL = "https://safety-consulting-five.vercel.app/index.html";
 
 // ★ [2] 동진 님만 알고 계실 '비공개 프리패스 마스터키' (화면에는 절대 노출 안 됨 / 3-3 입력창에 타이핑 시 즉시 통과)
 const MASTER_KEYS = [
