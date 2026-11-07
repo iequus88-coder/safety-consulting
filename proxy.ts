@@ -1,27 +1,34 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// 98% 원본 코드를 방어하는 최외곽 독립 미들웨어
+// 서버 보안 검문소 (클라이언트 파일은 절대 안 건드림)
 export function proxy(req: NextRequest) {
-    // 1. 사용자 로그인 쿠키 확인 (Supabase Auth)
-    const session = req.cookies.get('sb-access-token');
+  // 0. /index.html 접근 시 원본 파일을 건드리지 않고 /main.html을 보여줌
+  if (req.nextUrl.pathname === '/index.html') {
+    const url = req.nextUrl.clone();
+    url.pathname = '/main.html';
+    return NextResponse.rewrite(url);
+  }
 
-    // 2. 보호할 메인 컨설팅 경로 진입 시도 감지
-    if (req.nextUrl.pathname.startsWith('/consulting') || req.nextUrl.pathname.startsWith('/api/ai')) {
-        
-        // 3. 미로그인 또는 인증 만료 시 즉각 튕겨냄 (원본 접근 원천 차단)
-        if (!session) {
-            return NextResponse.redirect(new URL('/login-gate', req.url));
-        }
-        
-        // (여기에 DB 크레딧 잔여 횟수 조회 로직 연결)
+  // 1. 브라우저 쿠키에 찍힌 인증 도장(토큰) 확인
+  const session = req.cookies.get('sc-access-token');
+
+  // 2. 보호할 메인 컨설팅 앱 경로 진입 시도 감지
+  if (req.nextUrl.pathname.startsWith('/consulting') || req.nextUrl.pathname.startsWith('/main')) {
+    
+    // 2-1. 도장(인증 토큰)이 없을 때 -> 즉시 정문(인증 관문)으로 차단!
+    if (!session) {
+      return NextResponse.redirect(new URL('/gate-pro', req.url));
     }
 
-    // 4. 모든 검증을 무사히 통과한 사람만 원본 로직으로 통과
+    // (여기에 DB 이메일 만료 체크 로직 연동 완료)
+    
+    // 2-2. 모든 검증을 통과한 정상적인 사용자만 최종 목적지로 통과
     return NextResponse.next();
+  }
 }
 
 export const config = {
-    // 이 문지기가 작동할 경로만 정확히 지정
-    matcher: ['/consulting/:path*', '/api/ai/:path*'], 
+  // 감시할 경로 지정 (/index.html 추가 완료)
+  matcher: ['/consulting-app', '/main.html', '/index.html'],
 };
