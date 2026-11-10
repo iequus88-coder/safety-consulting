@@ -24,7 +24,7 @@ const MASTER_KEYS = [
 
 // ★ [3] 동진 님의 Apps Script 배포 URL (Apps Script에서 새 배포 시 바뀐 URL이 있다면 아래 큰따옴표 안에 넣어주세요)
 const DEFAULT_GAS_URL =
-  "https://script.google.com/macros/s/AKfycbzEZPUneNGAGJZstM9gxh3RL7YMEHoUOrsmroP9L7I_r39kWQ2kF8XcbPWexkB1g_gmCw/exec";
+  "https://script.google.com/macros/s/AKfycbz2bI7Zwr1ntnV3r_0QAbs8mYI8qI5QCgZQ9kEe83gv2ZyBPNGCn5aRJ45RBAAt9ojo3Q/exec";
 const SCRIPT_URL = process.env.NEXT_PUBLIC_GAS_URL || DEFAULT_GAS_URL;
 
 const PLAN_DATA: Record<string, any> = {
