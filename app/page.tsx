@@ -756,7 +756,10 @@ export default function SafetyControlTowerVer2008() {
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(MAIN_APP_URL);
+                    const targetUrl = window.location.search 
+                   ? window.location.href 
+                  : `${window.location.origin}${window.location.pathname}?email=${encodeURIComponent(applicant.email || '')}&key=${encodeURIComponent(licenseKey || '')}`;
+                  navigator.clipboard.writeText(targetUrl);
                       setNotice('정식 본 앱 주소가 복사되었습니다. 크롬 브라우저 주소창에 붙여넣기 해주세요.');
                     }}
                     style={styles.backBtn}
