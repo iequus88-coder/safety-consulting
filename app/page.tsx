@@ -11,7 +11,7 @@
 import React, { useState, useEffect } from 'react';
 
 // ★ [1] 4단계 통과 후 이동할 '정식 구동 메인 앱' 주소 (나중에 도메인 변경 시 여기만 수정)
-const MAIN_APP_URL = "https://safety-consulting-five.vercel.app/index.html";
+const MAIN_APP_URL = "https://safety-consulting-kqgfabvym-pilot-7df3.vercel.app/index.html";
 
 // ★ [2] 동진 님만 알고 계실 '비공개 프리패스 마스터키' (화면에는 절대 노출 안 됨 / 3-3 입력창에 타이핑 시 즉시 통과)
 const MASTER_KEYS = [
@@ -77,7 +77,7 @@ const PLAN_DATA: Record<string, any> = {
 };
 
 export default function SafetyControlTowerVer2008() {
-  const [mainStage, setMainStage] = useState<number>(3); // 3: 3단계 관문, 4: 브라우저 점검
+  const [mainStage, setMainStage] = useState<number>(3); // 3: 3단계 관문, 4: 브라우저 점검, 5: 본 앱 입장 안내
   const [subStep, setSubStep] = useState<string>('3-1'); // '3-1', '3-2', '3-3'
   const [loading, setLoading] = useState<boolean>(false);
   const [notice, setNotice] = useState<string>('');
@@ -104,6 +104,13 @@ export default function SafetyControlTowerVer2008() {
   const [inputLicenseKey, setInputLicenseKey] = useState<string>('');
   const [verifiedUser, setVerifiedUser] = useState<any>(null);
   const [whaleGuideOpen, setWhaleGuideOpen] = useState<boolean>(false);
+
+  // 5단계 안내 카드로 이동하는 함수
+  const goToStep5 = () => {
+    setNotice('');
+    setErrorMsg('');
+    setMainStage(5);
+  };
 
   // 정식 본 앱으로 즉시 이동하는 함수
   const redirectToMainApp = () => {
@@ -377,8 +384,8 @@ export default function SafetyControlTowerVer2008() {
               </button>
               <button
                 type="button"
-                onClick={redirectToMainApp}
-                style={styles.navPill}
+                onClick={() => { setNotice(''); setErrorMsg(''); setMainStage(5); }}
+                style={mainStage === 5 ? styles.navPillActive : styles.navPill}
               >
                 5단계. 안전관제탑 본 앱
               </button>
@@ -386,7 +393,7 @@ export default function SafetyControlTowerVer2008() {
           </div>
 
           <h1 style={styles.mainHeading}>
-            내 회사의 안전 해결사 <span style={{ color: '#fbbf24' }}>&lt; 안전 관제탑 &gt;</span>
+            우리 회사의 안전 해결사 <span style={{ color: '#fbbf24' }}>&lt; 안전 관제탑 &gt;</span>
           </h1>
           <p style={styles.subHeading}>
             회사의 법적 리스크를 통제/지원하는 안전 관제탑 — 중처법 등 얽혀있는 20여개의 안전관련법규를 깔끔하게 정리해서 쉬운 솔루션을 제시하는 안전 내비게이션
@@ -655,9 +662,9 @@ export default function SafetyControlTowerVer2008() {
             {/* 3-3 단계: 라이선스 키 입력 (하단 마스터키 노출 완전 제거 & '← 이전' 버튼 추가) */}
             {subStep === '3-3' && (
               <div style={styles.singleCardWrap}>
-                <div style={styles.stepTag}>내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; • STEP 3-3</div>
+                <div style={styles.stepTag}>우리 회사의 안전 해결사 &lt; 안전 관제탑 &gt; • STEP 3-3</div>
                 <h2 style={styles.cardTitle}>
-                  내 회사의 안전 해결사 &lt; 안전 관제탑 &gt;
+                  우리 회사의 안전 해결사 &lt; 안전 관제탑 &gt;
                 </h2>
 
                 <div style={styles.keyNoticeBox}>
@@ -699,7 +706,7 @@ export default function SafetyControlTowerVer2008() {
 
         {/* =====================================================================
             [MAIN STAGE 4] 4단계 크롬/엣지 vs 네이버 웨일 브라우저 확인 팝업
-            (통과 시 정식 본 앱 URL로 즉시 이동 + 하단 '← 이전' 버튼 추가)
+            (통과 시 5단계 안내 화면으로 이동 + 하단 '← 이전' 버튼 추가)
         ===================================================================== */}
         {mainStage === 4 && (
           <div style={styles.singleCardWrap}>
@@ -716,7 +723,7 @@ export default function SafetyControlTowerVer2008() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '24px' }}>
               <button
                 type="button"
-                onClick={redirectToMainApp}
+                onClick={goToStep5}
                 style={styles.chromeChoiceBtn}
               >
                 <div style={{ fontSize: '17px', fontWeight: 800 }}>🎙️ 네, 맞아요! (크롬 / 엣지 사용 중)</div>
@@ -758,7 +765,7 @@ export default function SafetyControlTowerVer2008() {
                   </button>
                   <button
                     type="button"
-                    onClick={redirectToMainApp}
+                    onClick={goToStep5}
                     style={{ ...styles.goldSubmitBtn, width: 'auto', marginTop: 0, padding: '12px 24px' }}
                   >
                     ⌨️ 문자입력 모드로 계속하기 (정식 본 앱 진입) →
@@ -779,8 +786,61 @@ export default function SafetyControlTowerVer2008() {
           </div>
         )}
 
+        {/* =====================================================================
+            [MAIN STAGE 5] 5단계 안전관제탑 구독자 전용 본 앱 입장 안내 카드
+        ===================================================================== */}
+        {mainStage === 5 && (
+          <div style={styles.singleCardWrap}>
+            <div style={styles.stepTag}>STEP 5 • 안전관제탑 정식 본 앱 입장</div>
+            <h2 style={styles.cardTitle}>
+              우리 회사의 안전 해결사 <span style={{ color: '#fbbf24' }}>&lt; 안전 관제탑 &gt;</span> 준비 완료!
+            </h2>
+            <p style={styles.cardDesc}>
+              라이선스 키 인증 및 브라우저 환경 점검이 모두 완료되었습니다.
+              <br />
+              아래 버튼을 클릭하시면 <strong>&lt;구독자 전용 앱 첫 화면&gt;</strong>으로 즉시 이동합니다.
+            </p>
+
+            {verifiedUser && (
+              <div style={{ ...styles.keyNoticeBox, marginTop: '18px', marginBottom: '18px' }}>
+                ✓ 인증 구독자: <strong>{verifiedUser.name}</strong> ({verifiedUser.company}) • 등급: <strong style={{ color: '#fbbf24' }}>{verifiedUser.tier}</strong> ({verifiedUser.period})
+              </div>
+            )}
+
+            <div style={{ marginTop: '22px' }}>
+              <button
+                type="button"
+                onClick={redirectToMainApp}
+                style={styles.goldSubmitBtn}
+              >
+                🚀 안전관제탑 구독자 전용 본 앱 실행하기 →
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => { setNotice(''); setErrorMsg(''); setMainStage(4); }}
+                style={styles.backBtn}
+              >
+                ← 이전 (4단계 브라우저 선택으로)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(MAIN_APP_URL);
+                  setNotice('구독자 전용 본 앱 주소가 복사되었습니다. 크롬 주소창에 붙여넣기 해주세요.');
+                }}
+                style={styles.backBtn}
+              >
+                📋 본 앱 주소 복사하기 (크롬창 붙여넣기용)
+              </button>
+            </div>
+          </div>
+        )}
+
         <footer style={styles.footer}>
-          내 회사의 안전 해결사 &lt; 안전 관제탑 &gt; | SAFETY CONSULTING APP (20년 안전관리 전문가 솔루션)
+          우리 회사의 안전 해결사 &lt; 안전 관제탑 &gt; | SAFETY CONSULTING APP (20년 안전관리 전문가 솔루션)
         </footer>
       </div>
     </div>
