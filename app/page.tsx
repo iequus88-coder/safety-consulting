@@ -1,14 +1,11 @@
 "use client";
 /**
- * SAFETY CONSULTING 안전 관제탑 Ver 2008 (최종 결함 핀셋 수리 완본)
- * - 기존 UI/디자인 100% 원본 사수
- * - 3-1 이메일 입력란 자동채움(남의 이메일 잔류) 제거 (무조건 빈칸 시작)
- * - 3-2 사업자등록번호/휴대폰번호 100% 자동 호출 및 '기초관리대장' 6행부터 즉시 인입
- * - 3-3 엉뚱한 2차 메일 안내 배너 제거 및 하단 마스터키 노출 박스 완전 삭제
- * - 3-2, 3-3, 4단계 전 구간 '← 이전' 버튼 일괄 적용
- * - 4단계 완료 시 가짜 채팅창 대신 정식 본 앱(MAIN_APP_URL)으로 즉시 이동
+ * SAFETY CONSULTING 안전 관제탑 Ver 2009 (4차 이메일 연동 및 계좌번호/100% 산안비 정비 완본)
+ * - 기존 UI/디자인 및 3-1 ~ 3-3 인증 로직 100% 원본 사수 (3차 이메일 무영향)
+ * - 3-2단계 무통장 계좌번호 및 '100% 전액 산업안전관리비' 문구 완전 제거
+ * - 3-3단계 인증 시 이메일/라이선스 키 보존 → 4·5단계 진입 시 4차 활용 가이드 이메일 자동 발송
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // ★ [1] 4단계 통과 후 이동할 '정식 구동 메인 앱' 주소 (나중에 도메인 변경 시 여기만 수정)
 const MAIN_APP_URL = "https://safety-consulting-kqgfabvym-pilot-7df3.vercel.app/index.html";
@@ -105,15 +102,65 @@ export default function SafetyControlTowerVer2008() {
   const [verifiedUser, setVerifiedUser] = useState<any>(null);
   const [whaleGuideOpen, setWhaleGuideOpen] = useState<boolean>(false);
 
-  // 5단계 안내 카드로 이동하는 함수
+  // 세션 내 4차 이메일 중복 호출 방지 플래그
+  const fourthEmailSentRef = useRef<boolean>(false);
+
+  // ★ [4차 이메일 자동 발송 신호 전송] 4단계 → 5단계 진입 시 백그라운드 호출 (화면 지연 없음)
+  const trigger4thEmail = () => {
+    if (fourthEmailSentRef.current) return;
+
+    const targetEmail = String(
+      (verifiedUser && verifiedUser.email) || applicant.email || inputEmail || ''
+    ).trim().toLowerCase();
+
+    if (!targetEmail || !targetEmail.includes('@')) return;
+
+    const targetName = String(
+      (verifiedUser && verifiedUser.name) || applicant.name || '고객'
+    ).trim();
+
+    let savedKey = '';
+    try {
+      savedKey = localStorage.getItem('sct_license_key') || '';
+    } catch (e) {}
+
+    const targetKey = String(
+      (verifiedUser && verifiedUser.licenseKey) || inputLicenseKey || savedKey || ''
+    ).trim().toUpperCase();
+
+    fourthEmailSentRef.current = true;
+
+    const payload = {
+      action: 'send4thEmail',
+      email: targetEmail,
+      name: targetName,
+      licenseKey: targetKey
+    };
+
+    try {
+      const queryStr = new URLSearchParams(payload).toString();
+      const fullUrl = `${SCRIPT_URL}?${queryStr}&_t=${Date.now()}`;
+      fetch(fullUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        keepalive: true,
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    } catch (err) {}
+  };
+
+  // 5단계 안내 카드로 이동하는 함수 (4단계 통과 즉시 4차 활용 가이드 이메일 발송 신호 전송)
   const goToStep5 = () => {
+    trigger4thEmail();
     setNotice('');
     setErrorMsg('');
     setMainStage(5);
   };
 
-  // 정식 본 앱으로 즉시 이동하는 함수
+  // 정식 본 앱으로 즉시 이동하는 함수 (상단 탭 등으로 5단계 직행 시에도 4차 메일 발송 보장)
   const redirectToMainApp = () => {
+    trigger4thEmail();
     window.location.href = MAIN_APP_URL;
   };
 
@@ -300,6 +347,8 @@ export default function SafetyControlTowerVer2008() {
       setVerifiedUser({
         name: applicant.name || '동진 님 (마스터)',
         company: applicant.company || '안전 관제탑 본부',
+        email: (applicant.email || inputEmail || '').trim().toLowerCase(),
+        licenseKey: cleanKey,
         tier: 'ULTRA',
         period: '1년',
         remainQuota: 40000,
@@ -321,9 +370,16 @@ export default function SafetyControlTowerVer2008() {
         localStorage.setItem('sct_license_key', cleanKey);
         document.cookie = `sct_license_key=${cleanKey}; path=/; max-age=31536000`;
 
+        const resolvedEmail = String(data.email || targetEmail || '').trim().toLowerCase();
+        if (resolvedEmail && !applicant.email) {
+          setApplicant((prev) => ({ ...prev, email: resolvedEmail }));
+        }
+
         setVerifiedUser({
           name: data.name || applicant.name || '구독자',
           company: data.company || applicant.company || '안전관리 본부',
+          email: resolvedEmail,
+          licenseKey: cleanKey,
           tier: data.tier || applicant.tier || 'STANDARD',
           period: data.period || applicant.period || '1년',
           remainQuota: data.remainQuota !== undefined ? data.remainQuota : 900,
@@ -366,7 +422,7 @@ export default function SafetyControlTowerVer2008() {
                 onClick={() => { setNotice(''); setErrorMsg(''); setMainStage(3); setSubStep('3-2'); }}
                 style={mainStage === 3 && subStep === '3-2' ? styles.navPillActive : styles.navPill}
               >
-                3-2. 구독신청·입금
+                3-2. 구독신청·결제안내
               </button>
               <button
                 type="button"
@@ -452,7 +508,7 @@ export default function SafetyControlTowerVer2008() {
               </div>
             )}
 
-            {/* 3-2 단계: 좌측 <구독모델 운영안> 상시 표시 + 우측 등급·기간·실입금자 선택 */}
+            {/* 3-2 단계: 좌측 <구독모델 운영안> 상시 표시 + 우측 등급·기간·신청자 선택 */}
             {subStep === '3-2' && (
               <div style={styles.twoColGrid}>
                 {/* 좌측: <구독모델 운영안> 바이블 표 */}
@@ -553,10 +609,10 @@ export default function SafetyControlTowerVer2008() {
                   </div>
                 </div>
 
-                {/* 우측: 3-2 구독 등급·기간 선택 및 무통장 입금 */}
+                {/* 우측: 3-2 구독 등급·기간 선택 및 결제 안내 */}
                 <div style={styles.panelCard}>
-                  <div style={styles.stepTag}>STEP 3-2 • 구독 등급·기간 선정 및 입금</div>
-                  <h2 style={styles.cardTitle}>구독 신청 및 입금자 확인</h2>
+                  <div style={styles.stepTag}>STEP 3-2 • 구독 등급·기간 선택 및 신청</div>
+                  <h2 style={styles.cardTitle}>구독 신청 및 담당자 확인</h2>
 
                   <form onSubmit={handleSubmitStep32}>
                     {/* 1. 등급 선택 */}
@@ -600,22 +656,22 @@ export default function SafetyControlTowerVer2008() {
                       </div>
                     </div>
 
-                    {/* 무통장 입금 계좌 및 필수 안내문구 */}
+                    {/* 결제 및 라이선스 키 발급 안내 (계좌번호 및 100% 산안비 문구 제거 완료) */}
                     <div style={styles.bankBox}>
-                      <div style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 700, marginBottom: '4px' }}>
-                        💳 구독료 무통장 입금 계좌
+                      <div style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 700, marginBottom: '6px' }}>
+                        💳 결제 및 이용 안내
                       </div>
-                      <div style={{ fontSize: '19px', fontWeight: 900, color: '#fbbf24', marginBottom: '8px' }}>
-                        하나은행 201-890629-15207 (예금주: 권일주)
+                      <div style={{ fontSize: '15px', fontWeight: 800, color: '#fbbf24', marginBottom: '8px', lineHeight: 1.5 }}>
+                        담당자 확인 후 기재하신 이메일로 결제 절차를 별도 안내해 드립니다.
                       </div>
                       <div style={{ fontSize: '13px', color: '#fef08a', fontWeight: 700, lineHeight: 1.55 }}>
-                        ※ 앱 구독료는 100% 전액 산업안전관리비로 사용 가능합니다.
+                        ※ 본 서비스 비용은 관련 법령 및 현장 적용 기준에 따라 산업안전보건관리비 정산 검토가 가능합니다.
                         <br />
-                        ※ 구독신청과 구독료 입금 완료시 <span style={{ color: '#ffffff', textDecoration: 'underline', fontSize: '14px' }}>&lt;라이선스 키&gt;</span>가 입력하셨던 이메일로 통보됩니다.
+                        ※ 구독신청 및 결제 확인 완료 시 <span style={{ color: '#ffffff', textDecoration: 'underline', fontSize: '14px' }}>&lt;라이선스 키&gt;</span>가 입력하신 이메일로 발송됩니다.
                       </div>
                     </div>
 
-                    {/* 3. 소통방법 및 실입금자 입력란 */}
+                    {/* 3. 소통방법 및 신청자/입금자명 입력란 */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                       <div>
                         <label style={styles.inputLabel}>주 소통방법 (P열)</label>
@@ -630,12 +686,12 @@ export default function SafetyControlTowerVer2008() {
                         </select>
                       </div>
                       <div>
-                        <label style={styles.inputLabel}>입금 완료 후 실입금자 입력 (Q열)</label>
+                        <label style={styles.inputLabel}>신청자/입금자명 (Q열)</label>
                         <input
                           type="text"
                           value={applicant.depositor}
                           onChange={(e) => setApplicant({ ...applicant, depositor: e.target.value })}
-                          placeholder="실제 입금자명 (또는 회사명)"
+                          placeholder="신청자명 또는 회사명"
                           style={styles.textInput}
                           required
                         />
@@ -668,12 +724,12 @@ export default function SafetyControlTowerVer2008() {
                 </h2>
 
                 <div style={styles.keyNoticeBox}>
-                  입력하신 이메일로 <strong style={{ color: '#fbbf24', fontSize: '18px' }}>&lt;라이선스 키&gt;</strong>가 발송되었습니다. 이 키를 아래에 입력하십시요 <strong>( 별도로 잘 보관필요 ! )</strong>
+                  입력하신 이메일로 <strong style={{ color: '#fbbf24', fontSize: '18px' }}>&lt;라이선스 키&gt;</strong>가 발송되었습니다. 이 키를 아래에 입력해 주십시오. <strong>(별도 보관 권장)</strong>
                 </div>
 
                 <form onSubmit={handleVerifyKey}>
                   <label style={styles.inputLabel}>
-                    발급받은 &lt;라이선스 키&gt; 입력 (브라우저 쿠키 보관으로 최초 1회만 입력하시면 됩니다)
+                    발급받은 &lt;라이선스 키&gt; 입력 (사용 중인 인터넷 브라우저에 자동 기억되어 최초 1회만 입력하시면 됩니다)
                   </label>
                   <input
                     type="text"
@@ -706,7 +762,7 @@ export default function SafetyControlTowerVer2008() {
 
         {/* =====================================================================
             [MAIN STAGE 4] 4단계 크롬/엣지 vs 네이버 웨일 브라우저 확인 팝업
-            (통과 시 5단계 안내 화면으로 이동 + 하단 '← 이전' 버튼 추가)
+            (통과 시 5단계 안내 화면으로 이동 + 4차 활용 가이드 이메일 자동 발송)
         ===================================================================== */}
         {mainStage === 4 && (
           <div style={styles.singleCardWrap}>
@@ -756,11 +812,11 @@ export default function SafetyControlTowerVer2008() {
                   <button
                     type="button"
                     onClick={() => {
-                    const targetUrl = window.location.search 
-                   ? window.location.href 
-                    : `${window.location.origin}${window.location.pathname}?email=${encodeURIComponent(applicant.email || '')}`;
+                      const targetUrl = window.location.search
+                        ? window.location.href
+                        : `${window.location.origin}${window.location.pathname}?email=${encodeURIComponent(applicant.email || '')}`;
 
-                  navigator.clipboard.writeText(targetUrl);
+                      navigator.clipboard.writeText(targetUrl);
                       setNotice('정식 본 앱 주소가 복사되었습니다. 크롬 브라우저 주소창에 붙여넣기 해주세요.');
                     }}
                     style={styles.backBtn}
